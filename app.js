@@ -483,16 +483,89 @@ document.addEventListener("click", (event) => {
   }
 });
 
-els.form?.addEventListener("submit", (event) => {
+const trackingKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"];
+const trackingParams = (() => {
+  const params = new URLSearchParams(window.location.search);
+  const stored = {};
+  try {
+    Object.assign(stored, JSON.parse(sessionStorage.getItem("renobest-tracking") || "{}"));
+  } catch (error) {
+    // sessionStorage niet beschikbaar: alleen de huidige URL gebruiken
+  }
+  trackingKeys.forEach((key) => {
+    if (params.get(key)) stored[key] = params.get(key);
+  });
+  try {
+    sessionStorage.setItem("renobest-tracking", JSON.stringify(stored));
+  } catch (error) {
+    // negeren
+  }
+  return stored;
+})();
+
+function answerLabel(key) {
+  const question = questions[key];
+  const value = state.answers[key];
+  if (!question) return String(value);
+  const index = question.values.findIndex((item) => String(item) === String(value));
+  return index >= 0 ? question.labels[index] : String(value);
+}
+
+function answersSummary() {
+  return (routeQuestionKeys[activeRoute()] || [])
+    .filter((key) => state.answers[key] !== undefined)
+    .map((key) => `${key}: ${answerLabel(key)}`)
+    .join(" | ");
+}
+
+function setHidden(name, value) {
+  const field = els.form.elements.namedItem(name);
+  if (field) field.value = value ?? "";
+}
+
+let sending = false;
+
+els.form?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (sending) return;
   els.formError?.classList.remove("is-visible");
 
   if (!els.form.checkValidity()) {
+    els.formError.textContent = "Vul alle velden in en aanvaard de privacy policy.";
     els.formError?.classList.add("is-visible");
     return;
   }
 
-  goToView("result");
+  setHidden("interesse", answerLabel("interest"));
+  setHidden("antwoorden", answersSummary());
+  setHidden("richtprijs", euro.format(calculatePrice()));
+  trackingKeys.forEach((key) => setHidden(key, trackingParams[key]));
+  setHidden("pagina", window.location.href);
+
+  const submitButton = els.form.querySelector('button[type="submit"]');
+  sending = true;
+  if (submitButton) submitButton.disabled = true;
+
+  try {
+    const body = new URLSearchParams(new FormData(els.form));
+    body.set("privacy", els.form.elements.namedItem("privacy").checked ? "ja" : "nee");
+    const response = await fetch("/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString()
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (window.dataLayer) {
+      window.dataLayer.push({ event: "renobest_calculator_lead", interesse: state.answers.interest });
+    }
+    goToView("result");
+  } catch (error) {
+    els.formError.textContent = "Je aanvraag kon niet verzonden worden. Probeer het opnieuw of bel 011 12 04 00.";
+    els.formError?.classList.add("is-visible");
+  } finally {
+    sending = false;
+    if (submitButton) submitButton.disabled = false;
+  }
 });
 
 renderQuestions();

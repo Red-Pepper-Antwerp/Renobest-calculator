@@ -360,7 +360,20 @@
             <h2>De prijs van jouw renovatie is berekend</h2>
             <h3>Laat je gegevens achter en ontvang de vrijblijvende prijsindicatie. Deze bezorgen we je ook nog eens per mail.</h3>
           </div>
-          <form class="lead-form" data-form novalidate>
+          <form class="lead-form" name="renobest-calculator" method="POST" data-netlify="true" netlify-honeypot="bot-field" data-form novalidate>
+            <input type="hidden" name="form-name" value="renobest-calculator">
+            <p hidden><label>Niet invullen <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+            <input type="hidden" name="interesse">
+            <input type="hidden" name="antwoorden">
+            <input type="hidden" name="richtprijs">
+            <input type="hidden" name="utm_source">
+            <input type="hidden" name="utm_medium">
+            <input type="hidden" name="utm_campaign">
+            <input type="hidden" name="utm_term">
+            <input type="hidden" name="utm_content">
+            <input type="hidden" name="gclid">
+            <input type="hidden" name="fbclid">
+            <input type="hidden" name="pagina">
             <div class="form-grid">
               <label>
                 <span>Voornaam</span>
