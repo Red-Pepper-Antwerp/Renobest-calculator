@@ -255,7 +255,7 @@ function renderQuestions() {
           type="button"
           data-answer="${key}"
           data-value="${question.values[index]}"
-        >${media}${iconHtml}<span class="option-text"><strong class="option-title">${label}</strong>${description ? `<span class="option-description">${description}</span>` : ""}</span></button>
+        >${media}${iconHtml}<span class="option-text"><strong class="option-title">${label.replace(/\//g, "/<wbr>")}</strong>${description ? `<span class="option-description">${description}</span>` : ""}</span></button>
       `;
       })
       .join("");

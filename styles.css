@@ -156,7 +156,9 @@ p {
   flex-direction: column;
   justify-content: center;
   width: 100%;
+  min-width: 0;
   min-height: 64px;
+  overflow-wrap: anywhere;
   padding: 16px;
   border: 2px solid var(--border);
   border-radius: var(--radius-option);
