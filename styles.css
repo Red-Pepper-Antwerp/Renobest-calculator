@@ -1,14 +1,21 @@
+/* Huisstijl afgestemd op renobest.be (Plus Jakarta Sans, Renobest-rood, zandtinten) */
 :root {
-  --primary: #b6373e;
-  --primary-hover: #a23137;
-  --heading-soft: #cc956b;
-  --text: #0a0a0a;
-  --muted: #4a5568;
-  --radio-bg: #f6f4f3;
+  --primary: #cc272b;
+  --primary-hover: #b7162d;
+  --primary-soft: rgba(204, 39, 43, 0.06);
+  --primary-ring: rgba(204, 39, 43, 0.22);
+  --text: #1d1713;
+  --muted: #6f6763;
+  --border: #e6e2df;
+  --secondary: #f6f1ed;
+  --sand: #fbf0e2;
   --white: #ffffff;
-  --error: #cc4b37;
-  --input-border: #cbd5e0;
-  --focus: rgba(52, 144, 220, 0.5);
+  --error: #c62828;
+  --radius-card: 24px;
+  --radius-option: 16px;
+  --radius-input: 12px;
+  --shadow-card: 0 24px 60px -28px rgba(29, 23, 19, 0.32);
+  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 *,
@@ -25,9 +32,9 @@ body {
 body {
   margin: 0;
   padding: 0;
-  background: var(--white);
+  background: var(--sand);
   color: var(--text);
-  font-family: Lato, sans-serif;
+  font-family: var(--font);
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -39,17 +46,30 @@ input {
   font: inherit;
 }
 
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+/* ---------- Kaart ---------- */
+
 .calculator-root {
   width: 100%;
   min-height: 100vh;
-  background: var(--white);
+  padding: 32px 16px;
 }
 
 .calculator {
   width: 100%;
-  max-width: 640px;
+  max-width: 672px;
   margin: 0 auto;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   background: var(--white);
+  box-shadow: var(--shadow-card);
 }
 
 .view {
@@ -59,72 +79,108 @@ input {
 
 .view.is-active {
   display: block;
+  animation: view-in 0.25s ease-out;
 }
 
-.question-block {
-  position: relative;
-  padding-top: 10px;
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.question-block.inset {
-  padding: 16px;
+/* ---------- Voortgang ---------- */
+
+.progress {
+  margin-bottom: 32px;
 }
 
-h1,
-h2,
-h3,
-p {
-  margin: 0;
+.progress[hidden] {
+  display: none;
 }
 
-.question-block h3,
-.lead-copy h3,
-.result-copy h3 {
-  margin: 0 0 0.5rem;
+.progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.progress-track {
+  height: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--secondary);
+}
+
+.progress-bar {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+/* ---------- Vragen ---------- */
+
+.question-block + .question-block {
+  margin-top: 28px;
+}
+
+.question-block h3 {
+  margin: 0 0 20px;
   color: var(--text);
-  font-family: Lato, sans-serif;
   font-size: 20px;
-  font-weight: 500;
-  line-height: 32px;
-  text-align: center;
-}
-
-.view.soft-heading .question-block h3 {
-  color: var(--heading-soft);
-  font-family: Roboto, Lato, sans-serif;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  text-align: left;
 }
 
 .radio-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0 5px 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 .radio-option {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
-  min-height: 66px;
-  padding: 1.25rem 1rem;
-  border: 1.5px solid #000000;
-  border-radius: 15px;
-  background: var(--radio-bg);
-  color: var(--muted);
-  line-height: 1.25;
+  min-height: 64px;
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-option);
+  background: var(--white);
+  color: var(--text);
+  line-height: 1.3;
   text-align: left;
   cursor: pointer;
   appearance: none;
-  transition: background-color 0.25s ease-out, color 0.25s ease-out, border-color 0.25s ease-out;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .radio-option:hover {
-  border-color: var(--primary);
+  border-color: rgba(204, 39, 43, 0.4);
+}
+
+.radio-option:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 4px var(--primary-ring);
 }
 
 .radio-option.is-selected {
   border-color: var(--primary);
-  background: var(--primary);
-  color: #fefefe;
+  background: var(--primary-soft);
 }
 
 .option-title,
@@ -133,140 +189,246 @@ p {
 }
 
 .option-title {
-  margin-bottom: 6px;
-  color: inherit;
-  font-weight: 800;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .option-description {
-  color: inherit;
+  margin-top: 4px;
+  color: var(--muted);
   font-size: 13px;
-  line-height: 1.35;
+  line-height: 1.4;
+}
+
+/* Keuzes met icoon (eerste stap) */
+.radio-option.has-icon {
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 20px 16px;
+}
+
+.option-icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(204, 39, 43, 0.1);
+  color: var(--primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.option-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.radio-option.is-selected .option-icon {
+  background: var(--primary);
+  color: var(--white);
+}
+
+/* Keuzes met foto (stijl badkamer en keuken) */
+.radio-group.has-media {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.radio-option.has-media {
+  justify-content: flex-start;
+  padding: 0;
+  overflow: hidden;
+}
+
+.option-media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--secondary);
+}
+
+.option-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.radio-option.has-media:hover .option-media img {
+  transform: scale(1.04);
+}
+
+.option-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--white);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.option-check svg {
+  width: 16px;
+  height: 16px;
+}
+
+.radio-option.is-selected .option-check {
+  opacity: 1;
+  transform: none;
+}
+
+.radio-option.has-media .option-text {
+  display: block;
+  padding: 14px 16px 16px;
 }
 
 .field-error {
   display: none;
-  margin: -12px 5px 16px;
+  margin-top: 10px;
   color: var(--error);
-  font-size: 0.75rem;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .field-error.is-visible {
   display: block;
 }
 
+/* ---------- Navigatie ---------- */
+
 .nav-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 20px 20px 0;
+  gap: 16px;
+  margin-top: 32px;
 }
 
-.nav-row > * {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.nav-row.single {
-  padding-top: 20px;
-}
-
-.cc-button,
-.policy-button {
+.cc-button {
   display: inline-flex;
-  min-height: 52px;
+  min-height: 48px;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  width: 100%;
-  margin: 0 0 16px;
-  padding: 15px 20px;
+  gap: 6px;
+  padding: 12px 24px;
   border: 0;
-  border-radius: 15px;
+  border-radius: 999px;
   background: var(--primary);
-  color: #fefefe;
-  font-family: Lato, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
+  color: var(--white);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
   line-height: 1;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
   appearance: none;
-  transition: background-color 0.25s ease-out, color 0.25s ease-out;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.cc-button:hover,
-.policy-button:hover {
+.cc-button:hover {
   background: var(--primary-hover);
-  color: #fefefe;
+  transform: translateY(-2px);
 }
 
-.cc-button:focus,
-.policy-button:focus {
+.cc-button:focus-visible {
   outline: 0;
-  box-shadow: 0 0 0 3px var(--focus);
+  box-shadow: 0 0 0 4px var(--primary-ring);
 }
 
 .cc-button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* "Vorige" als rustige tekstknop, zoals op renobest.be */
+.cc-button[data-prev] {
+  min-height: 40px;
+  padding: 8px 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.cc-button[data-prev]:hover {
+  background: transparent;
+  color: var(--text);
+  transform: none;
 }
 
 .cc-button.muted {
-  background: var(--radio-bg);
-  color: var(--muted);
-  border: 1.5px solid #000000;
+  border: 2px solid var(--border);
+  background: var(--white);
+  color: var(--text);
 }
 
 .cc-button.muted:hover {
-  background: #ece7e5;
+  border-color: var(--text);
+  background: var(--white);
 }
 
 .material-symbols-outlined {
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1;
 }
 
+/* ---------- Gegevens ---------- */
+
 .lead-copy {
-  padding: 10px 0 0;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .lead-copy h2 {
-  margin: 0 0 0.5rem;
-  font-family: Lato, sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 32px;
-  text-align: left;
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .lead-copy h3 {
-  margin-bottom: 16px;
-  color: var(--text);
-  font-size: 20px;
-  font-weight: 600;
-  text-align: left;
-}
-
-.lead-form {
-  padding: 0 0 16px;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.55;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  padding: 0 20px;
+  gap: 16px;
 }
 
 .lead-form label {
   display: block;
-  color: #3d3d3c;
-  font-size: 18px;
+  color: var(--text);
+  font-size: 14px;
   font-weight: 600;
-  line-height: 24px;
+  line-height: 1.4;
 }
 
 .lead-form label span {
@@ -278,31 +440,35 @@ p {
 .lead-form input[type="email"],
 .lead-form input[type="tel"] {
   width: 100%;
-  min-height: 46px;
-  padding: 10px;
-  border: 1px solid var(--input-border);
-  border-radius: 15px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-input);
   background: var(--white);
-  color: #3d3d3c;
+  color: var(--text);
   font-size: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .lead-form input:focus {
   outline: 0;
-  border-color: #a0aec0;
-  box-shadow: 0 0 0 5px rgba(160, 174, 192, 0.35);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-ring);
 }
 
 .switch-row {
   display: flex !important;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  padding: 16px 20px 0;
+  margin-top: 20px;
+  font-weight: 500 !important;
 }
 
 .switch-row input {
+  flex: 0 0 auto;
   width: 18px;
   height: 18px;
+  margin: 1px 0 0;
   accent-color: var(--primary);
 }
 
@@ -311,64 +477,137 @@ p {
 }
 
 .policy-button {
-  width: auto;
-  margin: 16px 0 16px 10px;
+  display: inline-block;
+  margin: 6px 0 0 28px;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.policy-button:hover {
+  color: var(--primary-hover);
 }
 
 .form-error {
-  margin: 0 20px 16px;
+  margin-top: 12px;
 }
 
+/* ---------- Resultaat ---------- */
+
 .result-copy {
-  padding: 28px 16px 0;
   text-align: center;
+}
+
+.result-icon {
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  background: rgba(204, 39, 43, 0.1);
+  color: var(--primary);
+}
+
+.result-icon .material-symbols-outlined {
+  font-size: 28px;
 }
 
 .result-copy h1 {
-  margin: 0 0 16px;
-  color: var(--text);
-  font-family: Lato, sans-serif;
-  font-size: 35px;
+  margin: 0 0 24px;
+  font-size: 30px;
   font-weight: 800;
-  line-height: 40px;
-  text-align: center;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.result-box {
+  margin: 0 0 20px;
+  padding: 24px 16px;
+  border-radius: 20px;
+  background: var(--sand);
 }
 
 .result-copy h3 {
-  color: var(--primary);
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .result-price {
-  margin-bottom: 18px;
-  color: var(--text);
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 32px;
-  text-align: center;
+  color: var(--primary);
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .result-copy p {
-  max-width: 560px;
-  margin: 0 auto 8px;
-  color: var(--text);
-  line-height: 1.5;
+  max-width: 520px;
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
 }
 
+.view[data-view="result"] .nav-row {
+  justify-content: center;
+}
+
+/* ---------- Mobiel ---------- */
+
 @media (max-width: 560px) {
+  .calculator-root {
+    padding: 16px 12px;
+  }
+
+  .calculator {
+    padding: 24px 18px;
+    border-radius: 20px;
+  }
+
+  .radio-group {
+    grid-template-columns: 1fr;
+  }
+
+  .radio-group.has-media {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .radio-option.has-icon {
+    flex-direction: row;
+    align-items: center;
+    padding: 14px 16px;
+  }
+
+  .radio-option.has-media .option-text {
+    padding: 10px 12px 12px;
+  }
+
+  .radio-option.has-media .option-title {
+    font-size: 14px;
+  }
+
+  .radio-option.has-media .option-description {
+    font-size: 12px;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
 
-  .nav-row {
-    gap: 0.75rem;
-    padding-right: 12px;
-    padding-left: 12px;
+  .question-block h3 {
+    font-size: 18px;
   }
 
-  .cc-button,
-  .policy-button {
-    padding-right: 14px;
-    padding-left: 14px;
+  .result-price {
+    font-size: 34px;
   }
 }

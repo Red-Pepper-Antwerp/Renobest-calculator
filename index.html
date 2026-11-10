@@ -8,17 +8,27 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;500;600;700;800&family=Material+Symbols+Outlined:wght@400&family=Roboto:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main id="calculator-root" class="calculator-root">
       <section class="calculator" aria-live="polite">
+        <div class="progress" data-progress>
+          <div class="progress-meta">
+            <span data-progress-label>Stap 1</span>
+            <span data-progress-percent>0%</span>
+          </div>
+          <div class="progress-track" role="progressbar" aria-label="Voortgang" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-progress-track>
+            <div class="progress-bar" data-progress-bar></div>
+          </div>
+        </div>
+
         <div class="view is-active" data-view="interest">
           <div class="question-block">
             <h3>Waarvoor heeft u interesse?</h3>
             <div class="radio-group" data-question="interest"></div>
-            <p class="field-error" data-error="interest">Please make a selection</p>
+            <p class="field-error" data-error="interest">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row single">
             <span></span>
@@ -33,7 +43,7 @@
           <div class="question-block">
             <h3>Hoe groot is jouw badkamer?</h3>
             <div class="radio-group" data-question="bathroomSize"></div>
-            <p class="field-error" data-error="bathroomSize">Please make a selection</p>
+            <p class="field-error" data-error="bathroomSize">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -51,7 +61,7 @@
           <div class="question-block">
             <h3>Welke badkamerstijl spreekt u aan?</h3>
             <div class="radio-group" data-question="bathroomStyle"></div>
-            <p class="field-error" data-error="bathroomStyle">Please make a selection</p>
+            <p class="field-error" data-error="bathroomStyle">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -69,7 +79,7 @@
           <div class="question-block">
             <h3>Baadt u graag in luxe of zijn kwalitatieve materialen voldoende?</h3>
             <div class="radio-group" data-question="bathroomComfort"></div>
-            <p class="field-error" data-error="bathroomComfort">Please make a selection</p>
+            <p class="field-error" data-error="bathroomComfort">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -87,7 +97,7 @@
           <div class="question-block">
             <h3>Hoe wenst u de wandbekleding/muurtegels?</h3>
             <div class="radio-group" data-question="bathroomTiling"></div>
-            <p class="field-error" data-error="bathroomTiling">Please make a selection</p>
+            <p class="field-error" data-error="bathroomTiling">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -105,12 +115,12 @@
           <div class="question-block">
             <h3>Wenst u een nieuw plafond (met spots)?</h3>
             <div class="radio-group" data-question="bathroomCeiling"></div>
-            <p class="field-error" data-error="bathroomCeiling">Please make a selection</p>
+            <p class="field-error" data-error="bathroomCeiling">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="question-block inset">
             <h3>Wenst u graag een douche, bad of beide?</h3>
             <div class="radio-group" data-question="bathroomBathType"></div>
-            <p class="field-error" data-error="bathroomBathType">Please make a selection</p>
+            <p class="field-error" data-error="bathroomBathType">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -128,12 +138,12 @@
           <div class="question-block">
             <h3>Wenst u een enkel of dubbel lavabomeubel?</h3>
             <div class="radio-group" data-question="bathroomVanity"></div>
-            <p class="field-error" data-error="bathroomVanity">Please make a selection</p>
+            <p class="field-error" data-error="bathroomVanity">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="question-block inset">
             <h3>Wenst u graag een toilet in de badkamer?</h3>
             <div class="radio-group" data-question="bathroomToilet"></div>
-            <p class="field-error" data-error="bathroomToilet">Please make a selection</p>
+            <p class="field-error" data-error="bathroomToilet">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -151,7 +161,7 @@
           <div class="question-block">
             <h3>Binnen welke periode moeten de werken worden uitgevoerd?</h3>
             <div class="radio-group" data-question="bathroomTiming"></div>
-            <p class="field-error" data-error="bathroomTiming">Please make a selection</p>
+            <p class="field-error" data-error="bathroomTiming">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -169,7 +179,7 @@
           <div class="question-block">
             <h3>Hoe groot is jouw keuken?</h3>
             <div class="radio-group" data-question="kitchenSize"></div>
-            <p class="field-error" data-error="kitchenSize">Please make a selection</p>
+            <p class="field-error" data-error="kitchenSize">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -187,7 +197,7 @@
           <div class="question-block">
             <h3>Welke keukenstijl spreekt u aan?</h3>
             <div class="radio-group" data-question="kitchenStyle"></div>
-            <p class="field-error" data-error="kitchenStyle">Please make a selection</p>
+            <p class="field-error" data-error="kitchenStyle">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -205,7 +215,7 @@
           <div class="question-block">
             <h3>Wat wilt u laten vernieuwen?</h3>
             <div class="radio-group" data-question="kitchenScope"></div>
-            <p class="field-error" data-error="kitchenScope">Please make a selection</p>
+            <p class="field-error" data-error="kitchenScope">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -223,7 +233,7 @@
           <div class="question-block">
             <h3>Welk afwerkingsniveau wenst u?</h3>
             <div class="radio-group" data-question="kitchenFinish"></div>
-            <p class="field-error" data-error="kitchenFinish">Please make a selection</p>
+            <p class="field-error" data-error="kitchenFinish">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -241,12 +251,12 @@
           <div class="question-block">
             <h3>Moeten de technieken worden aangepast?</h3>
             <div class="radio-group" data-question="kitchenTech"></div>
-            <p class="field-error" data-error="kitchenTech">Please make a selection</p>
+            <p class="field-error" data-error="kitchenTech">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="question-block inset">
             <h3>Welk type werkblad verkiest u?</h3>
             <div class="radio-group" data-question="kitchenWorktop"></div>
-            <p class="field-error" data-error="kitchenWorktop">Please make a selection</p>
+            <p class="field-error" data-error="kitchenWorktop">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -264,7 +274,7 @@
           <div class="question-block">
             <h3>Binnen welke periode moeten de werken worden uitgevoerd?</h3>
             <div class="radio-group" data-question="kitchenTiming"></div>
-            <p class="field-error" data-error="kitchenTiming">Please make a selection</p>
+            <p class="field-error" data-error="kitchenTiming">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -282,7 +292,7 @@
           <div class="question-block">
             <h3>Welke binnenafwerking zoekt u?</h3>
             <div class="radio-group" data-question="interiorType"></div>
-            <p class="field-error" data-error="interiorType">Please make a selection</p>
+            <p class="field-error" data-error="interiorType">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -300,7 +310,7 @@
           <div class="question-block">
             <h3>Over welke oppervlakte gaat het ongeveer?</h3>
             <div class="radio-group" data-question="interiorSurface"></div>
-            <p class="field-error" data-error="interiorSurface">Please make a selection</p>
+            <p class="field-error" data-error="interiorSurface">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -318,12 +328,12 @@
           <div class="question-block">
             <h3>Welk afwerkingsniveau wenst u?</h3>
             <div class="radio-group" data-question="interiorFinish"></div>
-            <p class="field-error" data-error="interiorFinish">Please make a selection</p>
+            <p class="field-error" data-error="interiorFinish">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="question-block inset">
             <h3>Moet er voorbereiding of afbraak gebeuren?</h3>
             <div class="radio-group" data-question="interiorPrep"></div>
-            <p class="field-error" data-error="interiorPrep">Please make a selection</p>
+            <p class="field-error" data-error="interiorPrep">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -341,7 +351,7 @@
           <div class="question-block">
             <h3>Binnen welke periode moeten de werken worden uitgevoerd?</h3>
             <div class="radio-group" data-question="interiorTiming"></div>
-            <p class="field-error" data-error="interiorTiming">Please make a selection</p>
+            <p class="field-error" data-error="interiorTiming">Maak een keuze om verder te gaan.</p>
           </div>
           <div class="nav-row">
             <button class="cc-button" type="button" data-prev>
@@ -357,6 +367,7 @@
 
         <div class="view" data-view="lead">
           <div class="lead-copy">
+            <span class="eyebrow">Bijna klaar</span>
             <h2>De prijs van jouw renovatie is berekend</h2>
             <h3>Laat je gegevens achter en ontvang de vrijblijvende prijsindicatie. Deze bezorgen we je ook nog eens per mail.</h3>
           </div>
@@ -404,7 +415,7 @@
               <input name="privacy" type="checkbox" required>
               <span>Ik aanvaard de privacy policy van RenoBest</span>
             </label>
-            <a class="policy-button" href="https://renobest.be/privacy-policy/" target="_blank" rel="noreferrer">Privacy Policy</a>
+            <a class="policy-button" href="https://renobest.be/privacy-policy/" target="_blank" rel="noreferrer">Lees de privacy policy</a>
             <p class="field-error form-error" data-form-error>Vul alle velden in en aanvaard de privacy policy.</p>
             <div class="nav-row">
               <button class="cc-button" type="button" data-prev>
@@ -420,16 +431,18 @@
 
         <div class="view" data-view="result">
           <div class="result-copy">
-            <h1>Bedankt voor jouw berekening !</h1>
-            <h3>Jouw richtprijs bedraagt</h3>
-            <div class="result-price" data-price>€0</div>
+            <span class="result-icon"><span class="material-symbols-outlined" aria-hidden="true">check</span></span>
+            <h1>Bedankt voor jouw berekening!</h1>
+            <div class="result-box">
+              <h3>Jouw richtprijs bedraagt</h3>
+              <div class="result-price" data-price>€0</div>
+            </div>
             <p>Let op: Dit is louter een inschatting. Een van onze medewerkers zal binnenkort contact met je opnemen om je verder te helpen.</p>
           </div>
           <div class="nav-row single">
             <button class="cc-button muted" type="button" data-restart>
               <span>Opnieuw berekenen</span>
             </button>
-            <span></span>
           </div>
         </div>
       </section>

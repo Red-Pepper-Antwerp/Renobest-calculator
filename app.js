@@ -33,9 +33,22 @@ const routeFlows = {
   ]
 };
 
+// Lucide-iconen (zelfde iconenset als renobest.be)
+const icons = {
+  bath: '<path d="M10 4 8 6"/><path d="M17 19v2"/><path d="M2 12h20"/><path d="M7 19v2"/><path d="M9 5 7.621 3.621A2.121 2.121 0 0 0 4 5v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
+  cookingPot: '<path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/>',
+  paintRoller: '<rect width="16" height="6" x="2" y="2" rx="2"/><path d="M10 16v-2a2 2 0 0 1 2-2h8a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect width="4" height="6" x="8" y="16" rx="1"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>'
+};
+
+function svgIcon(name) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
+}
+
 const questions = {
   interest: {
     labels: ["Badkamer", "Keuken", "Binnenafwerking"],
+    icons: ["bath", "cookingPot", "paintRoller"],
     values: ["bathroom", "kitchen", "interior"]
   },
   bathroomSize: {
@@ -48,6 +61,7 @@ const questions = {
       "Strakke lijnen, minimalistisch en tijdloos design",
       "Tijdloze elegantie en warme uitstraling"
     ],
+    images: ["images/badkamer-modern.webp", "images/badkamer-klassiek.webp"],
     values: [1, 2]
   },
   bathroomComfort: {
@@ -88,6 +102,7 @@ const questions = {
       "Strakke lijnen, minimalistisch en tijdloos design",
       "Warm, gezellig en vol karakter"
     ],
+    images: ["images/keuken-modern.webp", "images/keuken-landelijk.webp"],
     values: [1, 2]
   },
   kitchenScope: {
@@ -193,7 +208,12 @@ const els = {
   views: [...document.querySelectorAll("[data-view]")],
   price: document.querySelector("[data-price]"),
   form: document.querySelector("[data-form]"),
-  formError: document.querySelector("[data-form-error]")
+  formError: document.querySelector("[data-form-error]"),
+  progress: document.querySelector("[data-progress]"),
+  progressLabel: document.querySelector("[data-progress-label]"),
+  progressPercent: document.querySelector("[data-progress-percent]"),
+  progressBar: document.querySelector("[data-progress-bar]"),
+  progressTrack: document.querySelector("[data-progress-track]")
 };
 
 const euro = new Intl.NumberFormat("nl-BE", {
@@ -215,16 +235,27 @@ function renderQuestions() {
     const group = document.querySelector(`[data-question="${key}"]`);
     if (!group) return;
 
+    group.classList.toggle("has-icons", Boolean(question.icons));
+    group.classList.toggle("has-media", Boolean(question.images));
+
     group.innerHTML = question.labels
       .map((label, index) => {
         const description = question.descriptions?.[index];
+        const icon = question.icons?.[index];
+        const image = question.images?.[index];
+        const position = question.imagePositions?.[index] || "center";
+        const classes = ["radio-option", icon && "has-icon", image && "has-media"].filter(Boolean).join(" ");
+        const media = image
+          ? `<span class="option-media"><img src="${image}" alt="${label}" loading="lazy" style="object-position: ${position}"><span class="option-check">${svgIcon("check")}</span></span>`
+          : "";
+        const iconHtml = icon ? `<span class="option-icon">${svgIcon(icon)}</span>` : "";
         return `
         <button
-          class="radio-option"
+          class="${classes}"
           type="button"
           data-answer="${key}"
           data-value="${question.values[index]}"
-        >${description ? `<strong class="option-title">${label}</strong><span class="option-description">${description}</span>` : label}</button>
+        >${media}${iconHtml}<span class="option-text"><strong class="option-title">${label}</strong>${description ? `<span class="option-description">${description}</span>` : ""}</span></button>
       `;
       })
       .join("");
@@ -245,7 +276,24 @@ function renderView() {
     els.price.textContent = euro.format(calculatePrice());
   }
 
+  renderProgress();
+
   window.scrollTo({ top: 0, behavior: "auto" });
+}
+
+function renderProgress() {
+  if (!els.progress) return;
+  const steps = activeFlow().filter((view) => view !== "result");
+  const index = steps.indexOf(state.view);
+  const isResult = state.view === "result" || index === -1;
+  els.progress.hidden = isResult;
+  if (isResult) return;
+
+  const percent = Math.round((index / steps.length) * 100);
+  els.progressLabel.textContent = `Stap ${index + 1} van ${steps.length}`;
+  els.progressPercent.textContent = `${percent}%`;
+  els.progressBar.style.width = `${percent}%`;
+  els.progressTrack.setAttribute("aria-valuenow", String(percent));
 }
 
 function hideErrors(view = state.view) {
