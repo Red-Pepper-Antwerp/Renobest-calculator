@@ -298,6 +298,49 @@ p {
   stroke: none;
 }
 
+/* ---------- 3D-illustraties (isometrisch, zachte vlakken) ---------- */
+.option-illustration:has(svg.iso) {
+  flex-basis: 64%;
+  max-width: 230px;
+}
+.option-illustration svg.iso .iso-face {
+  stroke: #9a8f88;
+  stroke-width: 0.7px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.2s ease;
+}
+
+.option-illustration svg.iso .iso-line {
+  stroke: #b5aaa2;
+  stroke-width: 0.6px;
+  vector-effect: non-scaling-stroke;
+}
+
+.iso-floor.iso-top { fill: #efe5d8; }
+.iso-floor.iso-front, .iso-floor.iso-side { fill: #ddcfbf; }
+.iso-wall.iso-top { fill: #e9e2da; }
+.iso-wall.iso-front { fill: #f8f4ef; }
+.iso-wall.iso-side { fill: #efe8e0; }
+.iso-unit.iso-top { fill: #ffffff; }
+.iso-unit.iso-front { fill: #f4efea; }
+.iso-unit.iso-side { fill: #e2d9d1; }
+.iso-worktop.iso-top { fill: #fbfaf8; }
+.iso-worktop.iso-front, .iso-worktop.iso-side { fill: #cfc4ba; }
+.iso-stool.iso-top { fill: #ffffff; }
+.iso-stool.iso-front { fill: #ece5de; }
+.iso-stool.iso-side { fill: #d6ccc3; }
+.iso-dark { fill: #6f6763; }
+
+/* Gekozen: kasten en meubels in Renobest-rood */
+.radio-option.is-selected .iso-unit.iso-top,
+.radio-option.is-selected .iso-stool.iso-top { fill: #fbe3e3; }
+.radio-option.is-selected .iso-unit.iso-front,
+.radio-option.is-selected .iso-stool.iso-front { fill: #ef9d9f; }
+.radio-option.is-selected .iso-unit.iso-side,
+.radio-option.is-selected .iso-stool.iso-side { fill: #cc272b; }
+.radio-option.is-selected .iso-line { stroke: #fbe3e3; }
+
 /* Accent: wat vernieuwd wordt staat altijd in het rood */
 .option-illustration .pl-accent {
   stroke: var(--primary);
@@ -822,5 +865,509 @@ p {
 
   .result-price {
     font-size: 34px;
+  }
+}
+
+/* =========================================================
+   Configurator: één 3D-keuken die meebouwt (keukenflow)
+   ========================================================= */
+.stage[hidden] {
+  display: none;
+}
+
+.stage {
+  margin: 0 0 24px;
+  padding: 12px 12px 10px;
+  border-radius: 20px;
+  background: var(--sand);
+}
+
+.stage-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 340px;
+  animation: stage-fade 0.3s ease-out;
+}
+
+.stage-art svg.is-preview {
+  animation: none;
+}
+
+@keyframes stage-fade {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+.stage-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 6px;
+}
+
+.stage-title {
+  margin-right: 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.stage-chips {
+  display: contents;
+}
+
+.stage-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Nieuwe onderdelen schuiven in beeld */
+.stage-svg .iso-box.pop {
+  animation: part-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+@keyframes part-in {
+  from { opacity: 0; transform: translateY(-14%); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-art svg,
+  .stage-svg .iso-box.pop { animation: none; }
+}
+
+/* Lijnen en vlakken */
+.stage-svg .iso-face {
+  stroke: #9a8f88;
+  stroke-width: 0.7px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.stage-svg .iso-line,
+.stage-svg .iso-frame,
+.stage-svg .iso-grip {
+  fill: none;
+  stroke-width: 0.6px;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Vaste materialen */
+.stage-svg .iso-floor.iso-top { fill: #efe5d8; }
+.stage-svg .iso-floor.iso-front, .stage-svg .iso-floor.iso-side { fill: #ddcfbf; }
+.stage-svg .iso-wall.iso-top { fill: #e9e2da; }
+.stage-svg .iso-wall.iso-front { fill: #fdfaf6; }
+.stage-svg .iso-wall.iso-side { fill: #f3ede6; }
+.stage-svg .iso-dark { fill: #4a4542; }
+.stage-svg .iso-glass { fill: #3a3633; }
+.stage-svg .iso-steel.iso-top { fill: #e9e9e7; }
+.stage-svg .iso-steel.iso-front { fill: #cfcfcc; }
+.stage-svg .iso-steel.iso-side { fill: #b7b7b3; }
+.stage-svg .iso-stool.iso-top { fill: #ffffff; }
+.stage-svg .iso-stool.iso-front { fill: #e9e2db; }
+.stage-svg .iso-stool.iso-side { fill: #d3c9bf; }
+.stage-svg .iso-cord { fill: #4a4542; stroke: none; }
+.stage-svg .iso-lamp.iso-top { fill: #f0d9a8; }
+.stage-svg .iso-lamp.iso-front { fill: #d6b57a; }
+.stage-svg .iso-lamp.iso-side { fill: #b8955a; }
+.stage-svg .iso-led { fill: #ffe7a8; stroke: #f2c95c; }
+
+/* Stijl: modern (strak, licht, greeplijn) */
+.style-modern .iso-unit.iso-top { fill: #ffffff; }
+.style-modern .iso-unit.iso-front { fill: #f3eee8; }
+.style-modern .iso-unit.iso-side { fill: #ddd3ca; }
+.style-modern .iso-line, .style-modern .iso-grip { stroke: #b9ada3; }
+.style-modern .iso-frame { display: none; }
+
+/* Stijl: landelijk (saliegroen, kaderdeurtjes) */
+.style-land .iso-unit.iso-top { fill: #e6ece0; }
+.style-land .iso-unit.iso-front { fill: #c4d0b9; }
+.style-land .iso-unit.iso-side { fill: #a5b597; }
+.style-land .iso-line, .style-land .iso-frame { stroke: #8a9a7c; }
+.style-land .iso-grip { display: none; }
+
+/* Werkblad: standaard, laminaat (hout), composiet, natuursteen */
+.stage-svg .iso-worktop.iso-top { fill: #fbfaf8; }
+.stage-svg .iso-worktop.iso-front, .stage-svg .iso-worktop.iso-side { fill: #cfc4ba; }
+.top-1 .iso-worktop.iso-top { fill: #ddc19b; }
+.top-1 .iso-worktop.iso-front, .top-1 .iso-worktop.iso-side { fill: #b48e5c; }
+.top-2 .iso-worktop.iso-top { fill: #f1efeb; }
+.top-2 .iso-worktop.iso-front, .top-2 .iso-worktop.iso-side { fill: #bdb7af; }
+.top-3 .iso-worktop.iso-top { fill: #57514c; }
+.top-3 .iso-worktop.iso-front, .top-3 .iso-worktop.iso-side { fill: #3b3734; }
+
+/* Desktop: bühne links (meeschuivend), vragen rechts */
+@media (min-width: 900px) {
+  .calculator.has-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    column-gap: 36px;
+    max-width: 1080px;
+  }
+
+  .calculator.has-stage > .progress {
+    grid-column: 1 / -1;
+  }
+
+  .calculator.has-stage > .stage {
+    position: sticky;
+    top: 24px;
+    grid-column: 1;
+    grid-row: 2 / span 30;
+    align-self: start;
+    margin: 0;
+    padding: 20px 20px 14px;
+  }
+
+  .calculator.has-stage > .view {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .stage-art svg {
+    max-height: 420px;
+  }
+}
+
+/* Mobiel en tablet: bühne bovenaan, blijft in beeld tijdens het kiezen */
+@media (max-width: 899px) {
+  .calculator.has-stage > .stage {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin: 0 -8px 20px;
+    box-shadow: 0 10px 18px -16px rgba(29, 23, 19, 0.45);
+  }
+
+  .stage-art svg {
+    max-height: 24vh;
+    margin: 0 auto;
+  }
+
+  .calculator.has-stage > .stage {
+    padding: 8px 10px;
+  }
+
+  .stage-chips {
+    display: none;
+  }
+
+  .stage-caption {
+    position: absolute;
+    left: 12px;
+    bottom: 8px;
+    margin: 0;
+  }
+}
+
+/* In de configurator: 3 keuzes onder elkaar, icoon links */
+@media (min-width: 900px) {
+  .has-stage .radio-group:has(> .radio-option:nth-child(3):last-child) {
+    grid-template-columns: 1fr;
+  }
+
+  .has-stage .radio-option.has-icon {
+    flex-direction: row;
+    align-items: center;
+    padding: 14px 16px;
+  }
+}
+
+/* ---------- Configurator v2: schets, effecten, oplichten, label ---------- */
+
+/* Schets: nog geen stijl gekozen */
+.style-draft .iso-unit.iso-top { fill: #f2f0ed; }
+.style-draft .iso-unit.iso-front { fill: #e6e3df; }
+.style-draft .iso-unit.iso-side { fill: #d4d0cb; }
+.style-draft .iso-line { stroke: #bdb7b0; stroke-dasharray: 3 3; }
+.style-draft .iso-frame, .style-draft .iso-grip { display: none; }
+.style-draft .iso-face { stroke: #b3aca5; }
+
+/* Modern: helderder wit met donkere greeplijnen */
+.style-modern .iso-grip { stroke: #4a4542; stroke-width: 1.4px; }
+
+/* Landelijk: knopjes i.p.v. greeplijn */
+.style-land .iso-unit.iso-front { fill: #b9c9ad; }
+.style-land .iso-unit.iso-side { fill: #98ab89; }
+
+/* Luxe: gouden grepen */
+.finish-luxe .iso-grip { display: inline; stroke: #b8862f; stroke-width: 1.6px; }
+
+/* Werkblad (0 = nog niet gekozen) */
+.top-0 .iso-worktop.iso-top { fill: #e7e3dd; }
+.top-0 .iso-worktop.iso-front, .top-0 .iso-worktop.iso-side { fill: #cdc7bf; }
+.top-1 .iso-worktop.iso-top { fill: #d9b585; }
+.top-1 .iso-worktop.iso-front, .top-1 .iso-worktop.iso-side { fill: #a97c45; }
+.top-2 .iso-worktop.iso-top { fill: #ffffff; }
+.top-2 .iso-worktop.iso-front, .top-2 .iso-worktop.iso-side { fill: #9f9890; }
+.top-3 .iso-worktop.iso-top { fill: #45403c; }
+.top-3 .iso-worktop.iso-front, .top-3 .iso-worktop.iso-side { fill: #2c2926; }
+
+/* Tegelvloer (1 tegel = 1 m²) */
+.stage-svg .iso-grid { stroke: #d8cab9; stroke-width: 0.8px; vector-effect: non-scaling-stroke; }
+
+/* Luxe: achterwand + ledlicht */
+.stage-svg .iso-splash.iso-front { fill: #efe6dc; }
+.stage-svg .iso-splash.iso-top, .stage-svg .iso-splash.iso-side { fill: #e2d6c8; }
+.stage-svg .iso-glow { fill: rgba(255, 214, 120, 0.55); stroke: none; }
+.stage-svg .iso-led { fill: #ffe39a; stroke: #e8b84a; }
+
+/* Wat net veranderde licht even rood op */
+@keyframes stage-flash {
+  0%, 35% { stroke: #cc272b; stroke-width: 1.4px; }
+  100% { }
+}
+
+.chg-kitchenSize .iso-floor.iso-top,
+.chg-kitchenSize .iso-wall,
+.chg-kitchenStyle .iso-unit,
+.chg-kitchenScope.scope-1 .iso-unit.iso-front,
+.chg-kitchenScope.scope-1 .iso-unit.iso-side,
+.chg-kitchenScope.scope-1 .iso-worktop,
+.chg-kitchenScope.scope-2 .iso-unit,
+.chg-kitchenScope.scope-2 .iso-worktop,
+.chg-kitchenScope.scope-3 .iso-box.pop .iso-face,
+.chg-kitchenFinish .iso-splash,
+.chg-kitchenFinish .iso-led,
+.chg-kitchenFinish .iso-lamp,
+.chg-kitchenTech .iso-steel,
+.chg-kitchenTech .iso-glass,
+.chg-kitchenTech .iso-box.pop .iso-face,
+.chg-kitchenWorktop .iso-worktop {
+  animation: stage-flash 1.6s ease-out;
+}
+
+/* Label "wat veranderde" */
+.stage-toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 2;
+  width: max-content;
+  max-width: calc(100% - 28px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -6px);
+}
+
+.stage-toast.show {
+  animation: toast 3s ease-out forwards;
+}
+
+@keyframes toast {
+  0% { opacity: 0; transform: translate(-50%, -6px); }
+  10%, 75% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-svg * { animation: none !important; }
+  .stage-toast.show { animation: none; opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (max-width: 899px) {
+  .stage-art svg { max-height: 30vh; }
+  .stage-toast { top: 8px; font-size: 12px; padding: 5px 12px; }
+}
+
+/* ---------- Configurator: badkamer en binnenafwerking ---------- */
+
+/* Algemeen: wat net veranderde licht rood op */
+.stage-svg .iso-box.flash .iso-face,
+.stage-svg .iso-box.flash .iso-overlay {
+  animation: stage-flash 1.6s ease-out;
+}
+
+.stage-svg .iso-overlay { stroke: #9a8f88; stroke-width: 0.6px; vector-effect: non-scaling-stroke; }
+.stage-svg .iso-joint, .stage-svg .iso-rail { stroke-width: 0.6px; vector-effect: non-scaling-stroke; fill: none; }
+.stage-svg .iso-rail { stroke: #8f8a85; stroke-width: 1px; }
+
+/* Stippellijn: nog niet gekozen */
+.stage-svg .iso-ghost { fill: rgba(255, 255, 255, 0.35); stroke: #b0a69e; stroke-dasharray: 4 3; }
+
+/* Badkamer: vaste materialen */
+.stage-svg .iso-porcelain.iso-top { fill: #ffffff; }
+.stage-svg .iso-porcelain.iso-front { fill: #f2f0ee; }
+.stage-svg .iso-porcelain.iso-side { fill: #dcd8d3; }
+.stage-svg .iso-plate { fill: #e9e9e7; }
+.stage-svg .iso-mirror { fill: #dfe9ee; stroke: #9fb3bd; }
+.stage-svg .iso-tray { fill: #f4f2ef; }
+.stage-svg .iso-glasspane { fill: rgba(196, 223, 233, 0.45); stroke: #8fb1bf; }
+.stage-svg .iso-tub.iso-top { fill: #ffffff; }
+.stage-svg .iso-tub.iso-front { fill: #f3f1ee; }
+.stage-svg .iso-tub.iso-side { fill: #dedad5; }
+.stage-svg .iso-water { fill: #cfe4ec; stroke: #a9c8d4; }
+.stage-svg .iso-soffit.iso-top, .stage-svg .iso-soffit.iso-front { fill: #fbf9f6; }
+.stage-svg .iso-soffit.iso-side { fill: #ece6df; }
+.stage-svg .iso-spot { fill: #ffe39a; stroke: #e8b84a; }
+.stage-svg .iso-pot { fill: #d8cbbd; }
+.stage-svg .iso-plant.iso-top { fill: #8fb07c; }
+.stage-svg .iso-plant.iso-front { fill: #739a60; }
+.stage-svg .iso-plant.iso-side { fill: #5f8550; }
+
+/* Badkamer: stijl (schets / modern / klassiek) */
+.bstyle-draft .iso-bunit.iso-top { fill: #f2f0ed; }
+.bstyle-draft .iso-bunit.iso-front { fill: #e6e3df; }
+.bstyle-draft .iso-bunit.iso-side { fill: #d4d0cb; }
+.bstyle-draft .iso-btop { fill: #e7e3dd; }
+.bstyle-draft .iso-tiles { fill: #ece8e3; }
+.bstyle-draft .iso-tiles-joint { stroke: #cfc8bf; }
+.bstyle-draft .iso-line { stroke: #bdb7b0; stroke-dasharray: 3 3; }
+.bstyle-draft .iso-frame, .bstyle-draft .iso-grip { display: none; }
+
+.bstyle-modern .iso-bunit.iso-top { fill: #ffffff; }
+.bstyle-modern .iso-bunit.iso-front { fill: #f4f1ed; }
+.bstyle-modern .iso-bunit.iso-side { fill: #dcd5ce; }
+.bstyle-modern .iso-btop { fill: #4a4542; }
+.bstyle-modern .iso-tiles { fill: #e4e2df; }
+.bstyle-modern .iso-tiles-joint { stroke: #c6c2bd; }
+.bstyle-modern .iso-line { stroke: #b9ada3; }
+.bstyle-modern .iso-frame { display: none; }
+.bstyle-modern .iso-grip { stroke: #4a4542; stroke-width: 1.4px; }
+
+.bstyle-classic .iso-bunit.iso-top { fill: #d9b585; }
+.bstyle-classic .iso-bunit.iso-front { fill: #c49a64; }
+.bstyle-classic .iso-bunit.iso-side { fill: #a87f4c; }
+.bstyle-classic .iso-btop { fill: #f4f1ec; }
+.bstyle-classic .iso-tiles { fill: #b4c7b0; }
+.bstyle-classic .iso-tiles-joint { stroke: #e8eee5; }
+.bstyle-classic .iso-line, .bstyle-classic .iso-frame { stroke: #946d3e; }
+.bstyle-classic .iso-grip { stroke: #b8862f; stroke-width: 1.4px; }
+.bstyle-classic .iso-steel.iso-top { fill: #f1d9a6; }
+.bstyle-classic .iso-steel.iso-front { fill: #dcbb78; }
+.bstyle-classic .iso-steel.iso-side { fill: #c19a52; }
+
+/* Binnenafwerking: ruimte */
+.stage-svg .iso-rfloor.iso-top { fill: #eee6dc; }
+.stage-svg .iso-rfloor.iso-front, .stage-svg .iso-rfloor.iso-side { fill: #d9ccbe; }
+.stage-svg .iso-rwall.iso-top { fill: #e9e2da; }
+.stage-svg .iso-rwall.iso-front { fill: #fbf8f4; }
+.stage-svg .iso-rwall.iso-side { fill: #f1ebe4; }
+.stage-svg .iso-sofa.iso-top { fill: #c9c2bb; }
+.stage-svg .iso-sofa.iso-front { fill: #b5ada5; }
+.stage-svg .iso-sofa.iso-side { fill: #9f978f; }
+.stage-svg .iso-furn.iso-top { fill: #f6f2ed; }
+.stage-svg .iso-furn.iso-front { fill: #e3dbd2; }
+.stage-svg .iso-furn.iso-side { fill: #cfc5bb; }
+.stage-svg .iso-rug { fill: #e3d5c4; }
+.stage-svg .iso-planks { fill: #d7b384; }
+.stage-svg .iso-planks-joint { stroke: #b48f5f; }
+.stage-svg .iso-stone { fill: #d9d6d1; }
+.stage-svg .iso-stone-joint { stroke: #b7b2ab; }
+.stage-svg .iso-window { fill: #dbe9ef; stroke: #4a4542; stroke-width: 1.4px; }
+.stage-svg .iso-window-joint { stroke: #4a4542; stroke-width: 1.2px; }
+.stage-svg .iso-door { fill: #c9a274; stroke: #4a4542; stroke-width: 1.4px; }
+.stage-svg .iso-gyproc.iso-top { fill: #f4f4f2; }
+.stage-svg .iso-gyproc.iso-front { fill: #ecebe8; }
+.stage-svg .iso-gyproc.iso-side { fill: #e2e1dd; }
+.stage-svg .iso-seams { fill: none; stroke: none; }
+.stage-svg .iso-seams-joint { stroke: #b7b4ae; stroke-dasharray: 3 2; }
+.stage-svg .iso-wood.iso-top { fill: #e3c9a3; }
+.stage-svg .iso-wood.iso-front { fill: #d2b17f; }
+.stage-svg .iso-wood.iso-side { fill: #b8935f; }
+.stage-wood .iso-line, .stage-interior .iso-line { stroke: #a6855a; }
+.stage-interior .iso-frame { display: none; }
+.stage-interior .iso-grip { stroke: #4a4542; stroke-width: 1.2px; }
+.stage-svg .iso-skirting { fill: #ffffff; stroke: #9a8f88; }
+.stage-svg .iso-ladder.iso-front { fill: #d9dde0; }
+.stage-svg .iso-ladder.iso-top, .stage-svg .iso-ladder.iso-side { fill: #c0c6ca; }
+.stage-svg .iso-bucket.iso-top { fill: #f6f2ec; }
+.stage-svg .iso-bucket.iso-front, .stage-svg .iso-bucket.iso-side { fill: #cc272b; }
+.stage-svg .iso-skip.iso-top { fill: #6f6763; }
+.stage-svg .iso-skip.iso-front { fill: #e0a43a; }
+.stage-svg .iso-skip.iso-side { fill: #c4872a; }
+.stage-svg .iso-rubble.iso-top { fill: #c9c1b8; }
+.stage-svg .iso-rubble.iso-front, .stage-svg .iso-rubble.iso-side { fill: #a59b91; }
+
+/* Wanden in een nieuwe kleur (type 2) */
+.itype-2 .iso-rwall.iso-front { fill: #ead3c2; }
+.itype-2 .iso-rwall.iso-side { fill: #e2c6b2; }
+/* Hoogwaardig: rijkere tinten */
+.ifin-2 .iso-planks, .ifin-3 .iso-planks { fill: #c99e66; }
+.ifin-2.itype-2 .iso-rwall.iso-front, .ifin-3.itype-2 .iso-rwall.iso-front { fill: #dfbfa8; }
+
+/* Hangtoilet */
+.stage-svg .iso-seat.iso-top { fill: #ffffff; }
+.stage-svg .iso-seat.iso-front { fill: #eeebe7; }
+.stage-svg .iso-hole { fill: #d9e5ea; stroke: #b9c9d0; }
+.stage-svg .iso-ghost.iso-hole { fill: none; }
+.stage-svg .iso-flush { fill: #cfcfcc; stroke: #9a9590; stroke-width: 0.5px; vector-effect: non-scaling-stroke; }
+.stage-svg .iso-porcelain.iso-front { fill: #f1eeea; }
+
+/* Basiskeuzes zonder nieuw onderdeel: toch even oplichten */
+.chg-kitchenFinish.finish-comfort .iso-unit,
+.chg-kitchenTech .iso-dark {
+  animation: stage-flash 1.6s ease-out;
+}
+
+/* Lichtkegel van een spot */
+.stage-svg .iso-beam { fill: rgba(255, 214, 120, 0.42); stroke: none; }
+
+/* Wat verdwijnt: kort rood, dan vervagen */
+@keyframes part-out {
+  0%, 30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.stage-svg .iso-box.vanish {
+  animation: part-out 1.1s ease-in forwards;
+  pointer-events: none;
+}
+
+.stage-svg .iso-box.vanish .iso-face {
+  stroke: #cc272b;
+  stroke-width: 1.4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-svg .iso-box.vanish { display: none; }
+}
+
+/* Drie keuzes: naast elkaar als er plaats is, anders onder elkaar (nooit 2 + 1) */
+.view {
+  container-type: inline-size;
+}
+
+@container (min-width: 580px) {
+  .radio-group:has(> .radio-option:nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 579px) {
+  .radio-group:has(> .radio-option:nth-child(3):last-child) {
+    grid-template-columns: 1fr;
+  }
+
+  .radio-group:has(> .radio-option:nth-child(3):last-child) .radio-option.has-icon {
+    flex-direction: row;
+    align-items: center;
+    padding: 14px 16px;
+  }
+}
+
+/* Mobiel: op formulier en resultaat scrolt de bühne gewoon mee (meer ruimte om te typen) */
+@media (max-width: 899px) {
+  .calculator[data-view="lead"] > .stage,
+  .calculator[data-view="result"] > .stage {
+    position: relative;
+    top: auto;
+    box-shadow: none;
   }
 }

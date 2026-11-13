@@ -424,8 +424,182 @@ Object.assign(illustrations, {
   roomXL: roomWithFloor(6, 8, 148, 84)
 });
 
+// ---------- 3D (isometrisch) ----------
+// Een scène is een lijst blokken { b: [x, y, z, breedte, diepte, hoogte], k: soort, doors }.
+// We kijken vanuit de hoek +x/+y/+z: zichtbaar zijn het bovenvlak, het voorvlak (+y) en het zijvlak (+x).
+const ISO_C = Math.cos(Math.PI / 6);
+const ISO_S = Math.sin(Math.PI / 6);
+const isoPoint = (x, y, z) => [(x - y) * ISO_C, (x + y) * ISO_S - z];
+
+function isoFaces([x, y, z, w, d, h]) {
+  return {
+    top: [[x, y, z + h], [x + w, y, z + h], [x + w, y + d, z + h], [x, y + d, z + h]],
+    front: [[x, y + d, z], [x + w, y + d, z], [x + w, y + d, z + h], [x, y + d, z + h]],
+    side: [[x + w, y, z], [x + w, y + d, z], [x + w, y + d, z + h], [x + w, y, z + h]]
+  };
+}
+
+// Tekenvolgorde: wat achter een ander blok staat (en op het scherm overlapt) eerst.
+function isoSort(boxes) {
+  const eps = 1e-6;
+  const span = ({ b: [x, y, , w, d] }) => [x - (y + d), x + w - y];
+  const overlap = (a, b) => {
+    const [a0, a1] = span(a);
+    const [b0, b1] = span(b);
+    return a0 < b1 - eps && b0 < a1 - eps;
+  };
+  const behind = (a, b) => {
+    if (!overlap(a, b)) return false;
+    const [ax, ay, az, aw, ad, ah] = a.b;
+    const [bx, by, bz] = b.b;
+    return ax + aw <= bx + eps || ay + ad <= by + eps || az + ah <= bz + eps;
+  };
+  const key = ({ b: [x, y, z, w, d, h] }) => x + w / 2 + y + d / 2 + z * 0.01 + h * 0.001;
+  const rest = [...boxes];
+  const out = [];
+  while (rest.length) {
+    const free = rest.filter((b) => !rest.some((a) => a !== b && behind(a, b) && !behind(b, a)));
+    const pool = free.length ? free : rest;
+    pool.sort((p, q) => key(p) - key(q));
+    const next = pool[0];
+    out.push(next);
+    rest.splice(rest.indexOf(next), 1);
+  }
+  return out;
+}
+
+function isoScene(boxes) {
+  const pts = [];
+  let body = "";
+  const poly = (points, cls) => {
+    const p = points.map((q) => isoPoint(...q));
+    pts.push(...p);
+    return `<polygon class="${cls}" points="${p.map(([u, v]) => `${u.toFixed(3)},${v.toFixed(3)}`).join(" ")}"/>`;
+  };
+  isoSort(boxes).forEach((box) => {
+    const f = isoFaces(box.b);
+    const k = `iso-face iso-${box.k}`;
+    body += poly(f.side, `${k} iso-side`) + poly(f.front, `${k} iso-front`) + poly(f.top, `${k} iso-top`);
+    // Deurtjes/lades als lijnen op het zichtbare voorvlak
+    if (box.doors) {
+      const [x, y, z, w, d, h] = box.b;
+      for (let i = 1; i < box.doors; i += 1) {
+        const [u1, v1] = isoPoint(x + (w / box.doors) * i, y + d, z + 0.04);
+        const [u2, v2] = isoPoint(x + (w / box.doors) * i, y + d, z + h - 0.04);
+        body += `<line class="iso-line" x1="${u1.toFixed(3)}" y1="${v1.toFixed(3)}" x2="${u2.toFixed(3)}" y2="${v2.toFixed(3)}"/>`;
+      }
+    }
+    if (box.doorsSide) {
+      const [x, y, z, w, d, h] = box.b;
+      for (let i = 1; i < box.doorsSide; i += 1) {
+        const [u1, v1] = isoPoint(x + w, y + (d / box.doorsSide) * i, z + 0.04);
+        const [u2, v2] = isoPoint(x + w, y + (d / box.doorsSide) * i, z + h - 0.04);
+        body += `<line class="iso-line" x1="${u1.toFixed(3)}" y1="${v1.toFixed(3)}" x2="${u2.toFixed(3)}" y2="${v2.toFixed(3)}"/>`;
+      }
+    }
+  });
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  return { body, minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+}
+
+// Een reeks scènes op dezelfde schaal: grotere kamers zien er ook groter uit.
+function isoSet(scenes) {
+  const built = Object.fromEntries(Object.entries(scenes).map(([name, boxes]) => [name, isoScene(boxes)]));
+  const all = Object.values(built);
+  const W = Math.max(...all.map((s) => s.maxX - s.minX)) * 1.04;
+  const H = Math.max(...all.map((s) => s.maxY - s.minY)) * 1.04;
+  return Object.fromEntries(Object.entries(built).map(([name, s]) => {
+    const cx = (s.minX + s.maxX) / 2;
+    const cy = (s.minY + s.maxY) / 2;
+    const viewBox = `${(cx - W / 2).toFixed(3)} ${(cy - H / 2).toFixed(3)} ${W.toFixed(3)} ${H.toFixed(3)}`;
+    return [name, `<svg class="iso" xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" aria-hidden="true">${s.body}</svg>`];
+  }));
+}
+
+// Bouwstenen voor keukens
+const isoKitchen = {
+  room: (W, D, H = 2.6) => [
+    { b: [0, 0, -0.08, W, D, 0.08], k: "floor" },
+    { b: [0, -0.12, 0, W, 0.12, H], k: "wall" },
+    { b: [-0.12, -0.12, 0, 0.12, D + 0.12, H], k: "wall" }
+  ],
+  base: (x, y, w, d = 0.62, doors = Math.max(1, Math.round(w / 0.6))) => [
+    { b: [x, y, 0, w, d, 0.86], k: "unit", doors },
+    { b: [x === 0 ? 0 : x - 0.02, y, 0.86, w + (x === 0 ? 0.02 : 0.04), d + 0.03, 0.05], k: "worktop" }
+  ],
+  baseSide: (x, y, d, w = 0.62) => [
+    { b: [x, y, 0, w, d, 0.86], k: "unit", doorsSide: Math.max(1, Math.round(d / 0.6)) },
+    { b: [x, y - 0.02, 0.86, w + 0.03, d + 0.04, 0.05], k: "worktop" }
+  ],
+  upper: (x, w) => [{ b: [x, 0, 1.5, w, 0.36, 0.72], k: "unit", doors: Math.max(1, Math.round(w / 0.6)) }],
+  tall: (x, w = 0.64, y = 0) => [{ b: [x, y, 0, w, 0.64, 2.2], k: "unit", doors: Math.max(1, Math.round(w / 0.62)) }],
+  hob: (x, y = 0.12) => [{ b: [x, y, 0.91, 0.6, 0.42, 0.015], k: "dark" }],
+  sink: (x, y = 0.12, w = 0.5, d = 0.38) => [{ b: [x, y, 0.91, w, d, 0.015], k: "dark" }],
+  island: (x, y, w, d = 0.95) => [
+    { b: [x, y, 0, w, d, 0.86], k: "unit" },
+    { b: [x - 0.05, y - 0.05, 0.86, w + 0.1, d + 0.25, 0.05], k: "worktop" }
+  ],
+  stools: (x, y, n, gap = 0.62) => Array.from({ length: n }, (_, i) => ({ b: [x + i * gap, y, 0, 0.36, 0.36, 0.68], k: "stool" })),
+  table: (x, y, w, d) => [{ b: [x, y, 0.72, w, d, 0.05], k: "worktop" }, { b: [x + w / 2 - 0.08, y + d / 2 - 0.08, 0, 0.16, 0.16, 0.72], k: "unit" }],
+  chair: (x, y) => [{ b: [x, y, 0, 0.4, 0.4, 0.46], k: "stool" }]
+};
+
+Object.assign(illustrations, isoSet({
+  // < 8 m²: compacte hoekkeuken
+  kitchen3dS: [
+    ...isoKitchen.room(3.0, 2.5),
+    ...isoKitchen.base(0, 0, 3.0),
+    ...isoKitchen.baseSide(0, 0.62, 1.2),
+    ...isoKitchen.upper(0.6, 2.4),
+    ...isoKitchen.hob(1.9),
+    ...isoKitchen.sink(0.08, 1.1, 0.4, 0.46)
+  ],
+  // 8 – 14 m²: kastenwand, hoge kast en klein eiland
+  kitchen3dM: [
+    ...isoKitchen.room(4.0, 3.4),
+    ...isoKitchen.base(0, 0, 3.3),
+    ...isoKitchen.tall(3.33, 0.67),
+    ...isoKitchen.upper(0.3, 2.7),
+    ...isoKitchen.sink(0.7),
+    ...isoKitchen.hob(2.0),
+    ...isoKitchen.island(1.1, 1.75, 1.7),
+    ...isoKitchen.stools(1.45, 2.95, 2, 0.75)
+  ],
+  // 15 – 24 m²: U-keuken met groot eiland
+  kitchen3dL: [
+    ...isoKitchen.room(5.2, 4.2),
+    ...isoKitchen.base(0, 0, 3.9),
+    ...isoKitchen.tall(3.92, 1.28),
+    ...isoKitchen.baseSide(0, 0.62, 1.8),
+    ...isoKitchen.upper(0.6, 3.3),
+    ...isoKitchen.sink(1.0),
+    ...isoKitchen.hob(2.6),
+    ...isoKitchen.island(1.5, 2.1, 2.4),
+    ...isoKitchen.stools(1.75, 3.35, 3, 0.75)
+  ],
+  // > 24 m²: leefkeuken met eiland en eettafel
+  kitchen3dXL: [
+    ...isoKitchen.room(6.6, 5.0),
+    ...isoKitchen.tall(0, 1.28),
+    ...isoKitchen.base(1.3, 0, 3.4),
+    ...isoKitchen.upper(1.6, 2.8),
+    ...isoKitchen.sink(1.9),
+    ...isoKitchen.hob(3.4),
+    ...isoKitchen.island(1.5, 2.2, 2.6),
+    ...isoKitchen.stools(1.75, 3.45, 3, 0.8),
+    ...isoKitchen.chair(5.0, 1.55),
+    ...isoKitchen.chair(5.75, 1.55),
+    ...isoKitchen.table(4.8, 2.05, 1.6, 0.9),
+    ...isoKitchen.chair(5.0, 3.05),
+    ...isoKitchen.chair(5.75, 3.05)
+  ]
+}));
+
 function svgIllustration(name) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${illustrations[name]}</svg>`;
+  const art = illustrations[name];
+  if (art.startsWith("<svg")) return art;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${art}</svg>`;
 }
 
 const questions = {
@@ -437,7 +611,6 @@ const questions = {
   bathroomSize: {
     labels: ["<6m²", "7m² - 12 m²", "13m² - 20m²", "> 20m²"],
     display: ["&lt; 6 m²", "7 – 12 m²", "13 – 20 m²", "&gt; 20 m²"],
-    illustrations: ["bathS", "bathM", "bathL", "bathXL"],
     values: [1, 2, 3, 4]
   },
   bathroomStyle: {
@@ -460,36 +633,23 @@ const questions = {
   },
   bathroomTiling: {
     labels: ["Geheel", "Gedeeltelijk"],
-    descriptions: ["Alle wanden tot aan het plafond", "Enkel onderaan en waar nodig"],
-    illustrations: ["tilesFull", "tilesPartial"],
-    illustrationLayout: "stack",
-    accent: true,
+    descriptions: ["Alle wanden tot aan het plafond", "Tot 1,2 m, en hoger in de douche"],
     values: [1, 2]
   },
   bathroomCeiling: {
     labels: ["Ja", "Nee"],
-    illustrations: ["ceilingYes", "ceilingNo"],
-    illustrationLayout: "stack",
-    accent: true,
     values: [1, 0]
   },
   bathroomBathType: {
     labels: ["Douche", "Bad", "Beide"],
-    illustrations: ["bathShower", "bathTub", "bathBoth"],
-    illustrationLayout: "stack",
-    accent: true,
     values: [1, 2, 3]
   },
   bathroomVanity: {
     labels: ["Enkel", "Dubbel"],
-    illustrations: ["vanitySingle", "vanityDouble"],
-    illustrationLayout: "stack",
     values: [1, 2]
   },
   bathroomToilet: {
     labels: ["Ja", "Nee"],
-    illustrations: ["toiletYes", "toiletNo"],
-    illustrationLayout: "stack",
     values: [1, 0]
   },
   bathroomTiming: {
@@ -500,7 +660,6 @@ const questions = {
   kitchenSize: {
     labels: ["<8m²", "8m² - 14m²", "15m² - 24m²", "> 24m²"],
     display: ["&lt; 8 m²", "8 – 14 m²", "15 – 24 m²", "&gt; 24 m²"],
-    illustrations: ["kitchenS", "kitchenM", "kitchenL", "kitchenXL"],
     values: [1, 2, 3, 4]
   },
   kitchenStyle: {
@@ -519,9 +678,6 @@ const questions = {
       "Nieuwe kasten, werkblad en toestellen",
       "Een andere opstelling, bv. met kookeiland"
     ],
-    illustrations: ["scopeFronts", "scopeFull", "scopeLayout"],
-    illustrationLayout: "stack",
-    accent: true,
     values: [1, 2, 3]
   },
   kitchenFinish: {
@@ -540,8 +696,7 @@ const questions = {
   },
   kitchenWorktop: {
     labels: ["Laminaat/compact", "Composiet", "Natuursteen/keramiek"],
-    illustrations: ["worktopLaminate", "worktopComposite", "worktopStone"],
-    illustrationLayout: "stack",
+    descriptions: ["Warme houtlook, voordelig", "Strak en onderhoudsvriendelijk", "Natuurlijk en exclusief"],
     values: [1, 2, 3]
   },
   kitchenTiming: {
@@ -557,7 +712,6 @@ const questions = {
   interiorSurface: {
     labels: ["<25m²", "25m² - 60m²", "61m² - 120m²", "> 120m²"],
     display: ["&lt; 25 m²", "25 – 60 m²", "61 – 120 m²", "&gt; 120 m²"],
-    illustrations: ["roomS", "roomM", "roomL", "roomXL"],
     values: [1, 2, 3, 4]
   },
   interiorFinish: {
@@ -716,6 +870,7 @@ function renderView() {
   }
 
   renderProgress();
+  renderStage();
 
   window.scrollTo({ top: 0, behavior: "auto" });
 }
@@ -941,7 +1096,9 @@ document.addEventListener("click", (event) => {
   if (answer) {
     const key = answer.dataset.answer;
     const rawValue = answer.dataset.value;
+    const changed = String(state.answers[key]) !== String(rawValue);
     state.answers[key] = Number.isNaN(Number(rawValue)) ? rawValue : Number(rawValue);
+    state.lastChange = changed ? key : null;
     if (key === "interest") {
       clearOtherRouteAnswers(state.answers.interest);
     }
@@ -1053,6 +1210,619 @@ els.form?.addEventListener("submit", async (event) => {
     sending = false;
     if (submitButton) submitButton.disabled = false;
   }
+});
+
+// ---------- Configurator: één 3D-keuken die meebouwt met de antwoorden ----------
+const STAGE_ROOMS = { 1: [3.0, 2.6], 2: [4.2, 3.4], 3: [5.4, 4.3], 4: [6.8, 5.2] };
+const STAGE_WALL = 2.6;
+
+// Wat er in beeld verandert, per antwoord (wordt kort als label getoond)
+const STAGE_MESSAGES = {
+  kitchenSize: { 1: "Compacte keuken, kleiner dan 8 m²", 2: "Keuken van 8 tot 14 m²", 3: "Ruime keuken van 15 tot 24 m²", 4: "Leefkeuken van meer dan 24 m²" },
+  kitchenStyle: { 1: "Strakke, moderne fronten", 2: "Landelijke kaderdeurtjes" },
+  kitchenScope: { 1: "Nieuwe fronten en werkblad", 2: "Volledig nieuw, kasten tot aan het plafond", 3: "Kookeiland met krukken toegevoegd" },
+  kitchenFinish: { 0: "Comfort-afwerking", 1: "Luxe: achterwand, ledlicht, hanglampen en gouden grepen" },
+  kitchenTech: { 1: "Bestaande aansluitingen blijven", 2: "Nieuwe dampkap en inbouwoven", 3: "Dampkap, inbouwoven en koelkastkolom" },
+  kitchenWorktop: { 1: "Werkblad in houtlook", 2: "Strak composiet werkblad", 3: "Werkblad in natuursteen" }
+};
+
+const cab = (id, b, fronts, face = "front") => ({ id, b, k: "unit", fronts, face });
+
+function kitchenConfig(a) {
+  const size = Number(a.kitchenSize || 2);
+  const scope = Number(a.kitchenScope || 0);
+  const luxe = Number(a.kitchenFinish) === 1;
+  const tech = Number(a.kitchenTech || 1);
+  const [W, D] = STAGE_ROOMS[size];
+  const boxes = [
+    { id: "floor", b: [0, 0, -0.08, W, D, 0.08], k: "floor", grid: true },
+    { id: "wall-back", b: [0, -0.12, 0, W, 0.12, STAGE_WALL], k: "wall" },
+    { id: "wall-left", b: [-0.12, -0.12, 0, 0.12, D + 0.12, STAGE_WALL], k: "wall" }
+  ];
+  const fronts = (w) => Math.max(1, Math.round(w / 0.6));
+
+  // Opstelling per grootte; bij een extra koelkastkolom (tech 3) schuift de kastenrij op zodat alles past.
+  const fridgeRoom = tech >= 3;
+  const layout = {
+    1: { runX: 0, run: 3.0, tall: null, side: 1.2, fridge: [0, 1.86, "side"] },
+    2: fridgeRoom
+      ? { runX: 0, run: 2.66, tall: [2.69, 0.67], side: 0, fridge: [3.36, 0, "front"] }
+      : { runX: 0, run: 3.3, tall: [3.33, 0.67], side: 0 },
+    3: fridgeRoom
+      ? { runX: 0, run: 3.3, tall: [3.33, 1.28], side: 1.8, fridge: [4.61, 0, "front"] }
+      : { runX: 0, run: 3.9, tall: [3.92, 1.28], side: 1.8 },
+    4: { runX: 1.3, run: 3.4, tall: [0, 1.28], side: 0, fridge: [4.72, 0, "front"] }
+  }[size];
+  const { runX, run } = layout;
+
+  // Onderkasten + werkblad tegen de achterwand
+  boxes.push(cab("run", [runX, 0, 0, run, 0.62, 0.86], fronts(run)));
+  const topX = runX === 0 ? 0 : runX - 0.02;
+  const topW = Math.min(run + (runX === 0 ? 0.02 : 0.04), W - topX);
+  boxes.push({ id: "run-top", b: [topX, 0, 0.86, topW, 0.65, 0.05], k: "worktop" });
+
+  // Zijrij tegen de linkermuur (L-vorm)
+  if (layout.side) {
+    boxes.push(cab("side", [0, 0.62, 0, 0.62, layout.side, 0.86], fronts(layout.side), "side"));
+    boxes.push({ id: "side-top", b: [0, 0.6, 0.86, 0.65, layout.side + 0.04, 0.05], k: "worktop" });
+  }
+
+  // Luxe: achterwand tussen werkblad en bovenkasten
+  const upperX = runX + (size === 1 ? 0.6 : 0.3);
+  const upperW = run - 0.6;
+  if (luxe) boxes.push({ id: "splash", b: [runX, 0, 0.91, run, 0.02, 0.59], k: "splash" });
+
+  // Bovenkasten; bij volledige vernieuwing tot aan het plafond
+  const upperH = scope === 2 ? STAGE_WALL - 1.5 - 0.02 : 0.72;
+  const hoodX = runX + run * 0.62 - 0.05; // dampkap boven de kookplaat (0,7 m breed)
+  const upperSegments = tech >= 2
+    ? [[upperX, hoodX - 0.08 - upperX], [hoodX + 0.78, upperX + upperW - (hoodX + 0.78)]]
+    : [[upperX, upperW]];
+  upperSegments.filter(([, w]) => w >= 0.3).forEach(([ux, uw], i) => {
+    boxes.push(cab(i === 0 ? "upper" : `upper-${i}`, [ux, 0, 1.5, uw, 0.36, upperH], fronts(uw)));
+    if (luxe) {
+      boxes.push({ id: `glow-${i}`, b: [ux + 0.05, 0.022, 1.12, uw - 0.1, 0.004, 0.36], k: "glow" });
+      boxes.push({ id: `led-${i}`, b: [ux + 0.05, 0.3, 1.46, uw - 0.1, 0.05, 0.035], k: "led" });
+    }
+  });
+
+  // Hoge kast(en)
+  if (layout.tall) {
+    const [tx, tw] = layout.tall;
+    boxes.push(cab("tall", [tx, 0, 0, tw, 0.64, 2.2], fronts(tw)));
+    if (tech >= 2) boxes.push({ id: "oven", b: [tx + 0.08, 0.64, 0.95, Math.min(tw, 0.67) - 0.16, 0.012, 0.55], k: "glass" });
+  } else if (tech >= 2) {
+    // Kleine keuken: oven onder de kookplaat
+    boxes.push({ id: "oven", b: [runX + run * 0.62 + 0.02, 0.62, 0.12, 0.56, 0.012, 0.6], k: "glass" });
+  }
+  // Koelkastkolom bij volledig vernieuwde technieken
+  if (fridgeRoom && layout.fridge) {
+    const [fx, fy, face] = layout.fridge;
+    boxes.push(face === "side"
+      ? cab("fridge", [fx, fy, 0, 0.64, 0.66, 2.2], 1, "side")
+      : cab("fridge", [fx, fy, 0, 0.66, 0.64, 2.2], 1));
+  }
+
+  // Kookplaat en spoelbak
+  const hobX = runX + run * 0.62;
+  boxes.push({ id: "hob", b: [hobX, 0.12, 0.91, 0.6, 0.42, 0.015], k: "dark" });
+  if (layout.side) boxes.push({ id: "sink", b: [0.08, 0.62 + layout.side * 0.35, 0.91, 0.42, 0.48, 0.015], k: "dark" });
+  else boxes.push({ id: "sink", b: [runX + run * 0.18, 0.12, 0.91, 0.5, 0.38, 0.015], k: "dark" });
+
+  // Dampkap
+  if (tech >= 2) {
+    boxes.push({ id: "hood", b: [hobX - 0.05, 0.02, 1.58, 0.7, 0.5, 0.14], k: "steel" });
+    boxes.push({ id: "chimney", b: [hobX + 0.18, 0.02, 1.72, 0.24, 0.26, STAGE_WALL - 1.72], k: "steel" });
+  }
+
+  // Nieuwe indeling: kookeiland met krukken (+ hanglampen bij luxe)
+  if (scope === 3) {
+    const iw = { 1: 1.0, 2: 1.7, 3: 2.4, 4: 2.6 }[size];
+    const id = size === 1 ? 0.6 : 0.95;
+    const ix = { 1: 1.0, 2: 1.1, 3: 1.5, 4: 1.5 }[size];
+    const iy = { 1: 1.5, 2: 1.75, 3: 2.1, 4: 2.2 }[size];
+    boxes.push(cab("island", [ix, iy, 0, iw, id, 0.86], fronts(iw)));
+    boxes.push({ id: "island-top", b: [ix - 0.05, iy - 0.05, 0.86, iw + 0.1, id + (size === 1 ? 0.1 : 0.25), 0.05], k: "worktop" });
+    const n = size === 1 ? 0 : size === 2 ? 2 : 3;
+    for (let i = 0; i < n; i += 1) {
+      const sx = ix + 0.3 + i * ((iw - 0.6) / Math.max(1, n - 1)) - 0.18;
+      boxes.push({ id: `stool-${i}`, b: [sx, iy + id + 0.3, 0, 0.36, 0.36, 0.68], k: "stool" });
+    }
+    if (luxe) {
+      [0.3, 0.7].forEach((t, i) => {
+        const lx = ix + iw * t - 0.13;
+        boxes.push({ id: `cord-${i}`, b: [lx + 0.12, iy + id / 2, 1.78, 0.02, 0.02, STAGE_WALL - 1.78], k: "cord" });
+        boxes.push({ id: `lamp-${i}`, b: [lx, iy + id / 2 - 0.12, 1.55, 0.26, 0.26, 0.23], k: "lamp" });
+      });
+    }
+  }
+
+  // Leefkeuken: eettafel met stoelen
+  if (size === 4) {
+    boxes.push({ id: "chair-0", b: [5.0, 1.55, 0, 0.4, 0.4, 0.46], k: "stool" });
+    boxes.push({ id: "chair-1", b: [5.75, 1.55, 0, 0.4, 0.4, 0.46], k: "stool" });
+    boxes.push({ id: "table-leg", b: [5.52, 2.42, 0, 0.16, 0.16, 0.72], k: "stool" });
+    boxes.push({ id: "table", b: [4.8, 2.05, 0.72, 1.6, 0.9, 0.05], k: "worktop" });
+    boxes.push({ id: "chair-2", b: [5.0, 3.05, 0, 0.4, 0.4, 0.46], k: "stool" });
+    boxes.push({ id: "chair-3", b: [5.75, 3.05, 0, 0.4, 0.4, 0.46], k: "stool" });
+  }
+  return boxes;
+}
+
+// ---------- Badkamer: scène uit de antwoorden ----------
+const BATH_ROOMS = { 1: [2.8, 2.4], 2: [3.4, 2.9], 3: [4.2, 3.4], 4: [5.2, 4.0] };
+const BATH_WALL = 2.6;
+
+function bathroomConfig(a) {
+  const size = Number(a.bathroomSize || 2);
+  const [W, D] = BATH_ROOMS[size];
+  const luxe = Number(a.bathroomComfort) === 1;
+  const s = { 1: 0.85, 2: 1.0, 3: 1.2, 4: 1.3 }[size]; // douche-hoek
+  const tile = a.bathroomStyle === undefined ? 0.3 : Number(a.bathroomStyle) === 2 ? 0.2 : 0.6;
+  const tiling = Number(a.bathroomTiling || 0);
+
+  // Wandtegels als vlak op de muren
+  const backTiles = [];
+  const leftTiles = [];
+  if (tiling === 1) {
+    backTiles.push({ u0: 0, u1: W, v0: 0, v1: BATH_WALL, step: tile, cls: "iso-tiles" });
+    leftTiles.push({ u0: 0, u1: D, v0: 0, v1: BATH_WALL, step: tile, cls: "iso-tiles" });
+  } else if (tiling === 2) {
+    backTiles.push({ u0: 0, u1: W, v0: 0, v1: 1.2, step: tile, cls: "iso-tiles" });
+    backTiles.push({ u0: W - s, u1: W, v0: 1.2, v1: 2.1, step: tile, cls: "iso-tiles", alignV: 1.2 });
+    leftTiles.push({ u0: 0, u1: D, v0: 0, v1: 1.2, step: tile, cls: "iso-tiles" });
+  }
+
+  const boxes = [
+    { id: "floor", b: [0, 0, -0.08, W, D, 0.08], k: "floor", grid: true, tags: ["bathroomSize"] },
+    { id: "wall-back", b: [0, -0.12, 0, W, 0.12, BATH_WALL], k: "wall", overlays: backTiles.map((o) => ({ ...o, face: "front" })), tags: ["bathroomSize", "bathroomTiling"] },
+    { id: "wall-left", b: [-0.12, -0.12, 0, 0.12, D + 0.12, BATH_WALL], k: "wall", overlays: leftTiles.map((o) => ({ ...o, face: "side" })), tags: ["bathroomSize", "bathroomTiling"] }
+  ];
+
+  // Lavabomeubel (enkel of dubbel) met wasbak(ken) en spiegel(s)
+  const double = Number(a.bathroomVanity) === 2;
+  const vw = double ? { 1: 0.9, 2: 1.3, 3: 1.5, 4: 1.7 }[size] : { 1: 0.7, 2: 0.8, 3: 0.9, 4: 1.0 }[size];
+  const vx = 0.95;
+  const vt = ["bathroomVanity", "bathroomStyle", "bathroomComfort"];
+  boxes.push({ id: "vanity", b: [vx, 0, 0.3, vw, 0.48, 0.5], k: "bunit", fronts: double ? 2 : 1, face: "front", tags: vt });
+  boxes.push({ id: "vanity-top", b: [vx - 0.02, 0, 0.8, vw + 0.04, 0.5, 0.04], k: "btop", tags: vt });
+  const basins = double ? 2 : 1;
+  const mw = Math.min(0.48, vw / basins - 0.08); // spiegelbreedte
+  for (let i = 0; i < basins; i += 1) {
+    const cx = vx + (vw / (basins * 2)) * (i * 2 + 1);
+    boxes.push({ id: `basin-${i}`, b: [cx - 0.19, 0.08, 0.84, 0.38, 0.32, 0.07], k: "porcelain", tags: vt });
+    if (luxe) boxes.push({ id: `mirror-glow-${i}`, b: [cx - mw / 2 - 0.07, 0.004, 1.08, mw + 0.14, 0.004, 0.79], k: "glow", tags: ["bathroomComfort"] });
+    boxes.push({ id: `mirror-${i}`, b: [cx - mw / 2, 0.01, 1.15, mw, 0.02, 0.65], k: "mirror", tags: vt });
+  }
+
+  // Handdoekradiator (luxe), tussen meubel en douche als er plaats is
+  const rx = vx + vw + 0.18;
+  if (luxe && rx + 0.45 <= W - s - 0.05) {
+    boxes.push({ id: "radiator", b: [rx, 0, 0.45, 0.45, 0.05, 1.05], k: "steel", rails: true, tags: ["bathroomComfort"] });
+  }
+
+  // Hangtoilet tegen de achtermuur (links van het meubel), naar de kijker gericht.
+  // Ja = echt, nog niet gekozen = stippellijn, nee = weg.
+  const toilet = a.bathroomToilet === undefined ? "ghost" : Number(a.bathroomToilet) === 1 ? "real" : null;
+  if (toilet) {
+    const g = toilet === "ghost";
+    const t = ["bathroomToilet"];
+    const tx = 0.42; // midden van het toilet
+    boxes.push({ id: `toilet-plate-${toilet}`, b: [tx - 0.12, 0, 0.95, 0.24, 0.015, 0.16], k: g ? "ghost" : "plate", flush: !g, tags: t });
+    boxes.push({ id: `toilet-bowl-${toilet}`, b: [tx - 0.18, 0, 0.36, 0.36, 0.58, 0.3], k: g ? "ghost" : "porcelain",
+      oval: { cx: tx, cy: 0.34, rx: 0.17, ry: 0.25, z0: 0.36, z1: 0.66, taper: 0.62 }, tags: t });
+    boxes.push({ id: `toilet-seat-${toilet}`, b: [tx - 0.19, 0.07, 0.66, 0.38, 0.53, 0.04], k: g ? "ghost" : "seat",
+      oval: { cx: tx, cy: 0.335, rx: 0.185, ry: 0.265, z0: 0.66, z1: 0.7, hole: g ? null : [0.55, 0.6, 0.03] }, tags: t });
+  }
+
+  // Douche en/of bad
+  const type = Number(a.bathroomBathType || 0);
+  const showerKind = type === 0 ? "ghost" : type === 1 || type === 3 ? "real" : null;
+  const bathKind = type === 0 ? "ghost" : type === 2 || type === 3 ? "real" : null;
+  if (showerKind) {
+    const g = showerKind === "ghost";
+    const t = ["bathroomBathType"];
+    boxes.push({ id: `tray-${showerKind}`, b: [W - s, 0, 0, s, s, 0.05], k: g ? "ghost" : "tray", tags: t });
+    boxes.push({ id: `glass-${showerKind}`, b: [W - s, s - 0.02, 0.05, s * 0.65, 0.02, 1.95], k: g ? "ghost" : "glasspane", tags: t });
+    if (!g) {
+      boxes.push({ id: "rain", b: [W - s / 2 - 0.13, 0.02, 2.05, 0.26, 0.26, 0.03], k: "steel", tags: t });
+      boxes.push({ id: "mixer", b: [W - s / 2 - 0.05, 0, 1.05, 0.1, 0.04, 0.12], k: "steel", tags: t });
+    }
+  }
+  if (bathKind) {
+    const g = bathKind === "ghost";
+    const t = ["bathroomBathType", "bathroomSize"];
+    const L = Math.min(1.7, D - 0.75);
+    const tb = size === 4 ? [W / 2 - 0.85, D / 2 + 0.1, 0, 1.7, 0.8, 0.55] : [0, D - L, 0, 0.75, L, 0.55];
+    boxes.push({ id: `tub-${bathKind}`, b: tb, k: g ? "ghost" : "tub", tags: t });
+    if (!g) boxes.push({ id: "tub-water", b: [tb[0] + 0.08, tb[1] + 0.08, 0.5, tb[3] - 0.16, tb[4] - 0.16, 0.052], k: "water", tags: t });
+  }
+
+  // Verlaagd plafond met spots: ja = echt, nog niet gekozen = stippellijn, nee = weg
+  const ceiling = a.bathroomCeiling === undefined ? "ghost" : Number(a.bathroomCeiling) === 1 ? "real" : null;
+  if (ceiling) {
+    const k = ceiling === "ghost" ? "ghost" : "soffit";
+    const t = ["bathroomCeiling"];
+    boxes.push({ id: `soffit-back-${ceiling}`, b: [0, 0, 2.35, W, 0.35, 0.25], k, tags: t });
+    boxes.push({ id: `soffit-left-${ceiling}`, b: [0, 0.35, 2.35, 0.35, D - 0.35, 0.25], k, tags: t });
+    if (ceiling === "real") {
+      for (let x = 0.6; x < W - 0.2; x += 1.0) {
+        boxes.push({ id: `beam-${x}`, b: [x - 0.32, 0.004, 1.35, 0.64, 0.004, 0.98], k: "beam", cone: true, tags: t });
+        boxes.push({ id: `spot-${x}`, b: [x - 0.06, 0.12, 2.32, 0.12, 0.12, 0.03], k: "spot", tags: t });
+      }
+    }
+  }
+
+  // Luxe: plant
+  if (luxe) {
+    boxes.push({ id: "pot", b: [W - 0.5, D - 0.5, 0, 0.3, 0.3, 0.32], k: "pot", tags: ["bathroomComfort"] });
+    boxes.push({ id: "plant", b: [W - 0.56, D - 0.56, 0.32, 0.42, 0.42, 0.42], k: "plant", tags: ["bathroomComfort"] });
+  }
+  return boxes;
+}
+
+// ---------- Binnenafwerking: scène uit de antwoorden ----------
+const ROOM_ROOMS = { 1: [4.6, 4.0], 2: [7.0, 6.0], 3: [9.5, 8.5], 4: [12, 11] };
+const ROOM_WALL = 2.7;
+
+function interiorConfig(a) {
+  const size = Number(a.interiorSurface || 1);
+  const [W, D] = ROOM_ROOMS[size];
+  const type = Number(a.interiorType || 0);
+  const finish = Number(a.interiorFinish || 1);
+  const prep = Number(a.interiorPrep || 1);
+  const T = ["interiorType"];
+
+  const floorOverlays = [];
+  if (type === 1) floorOverlays.push({ face: "top", u0: 0, u1: W, v0: 0, v1: D, stepV: 0.22, cls: "iso-planks" });
+  if (type === 3) floorOverlays.push({ face: "top", u0: 0, u1: W, v0: 0, v1: D, step: 0.6, cls: "iso-stone" });
+  const backOverlays = [];
+  const leftOverlays = [];
+  if (type === 5) {
+    backOverlays.push({ face: "front", u0: W * 0.35, u1: W * 0.35 + 1.6, v0: 0.9, v1: 2.3, cls: "iso-window", stepU: 0.8 });
+    leftOverlays.push({ face: "side", u0: D * 0.55, u1: D * 0.55 + 0.95, v0: 0, v1: 2.15, cls: "iso-door" });
+  }
+
+  const boxes = [
+    { id: "floor", b: [0, 0, -0.08, W, D, 0.08], k: "rfloor", overlays: floorOverlays, tags: ["interiorSurface", "interiorFinish", "interiorPrep", ...T] },
+    { id: "wall-back", b: [0, -0.12, 0, W, 0.12, ROOM_WALL], k: "rwall", overlays: backOverlays, tags: ["interiorSurface", "interiorFinish", ...T] },
+    { id: "wall-left", b: [-0.12, -0.12, 0, 0.12, D + 0.12, ROOM_WALL], k: "rwall", overlays: leftOverlays, tags: ["interiorSurface", "interiorFinish", ...T] }
+  ];
+
+  // Meubels ter vergelijking (vaste maat, dus de ruimte lijkt groter of kleiner)
+  boxes.push({ id: "sofa", b: [1.0, 1.0, 0, 2.1, 0.9, 0.42], k: "sofa" });
+  boxes.push({ id: "sofa-back", b: [1.0, 0.8, 0, 2.1, 0.22, 0.82], k: "sofa" });
+  boxes.push({ id: "table", b: [1.6, 2.5, 0, 0.9, 0.55, 0.38], k: "furn" });
+  boxes.push({ id: "rug", b: [0.8, 2.15, 0, 2.2, 1.3, 0.01], k: "rug" });
+  if (size >= 2) {
+    boxes.push({ id: "dining", b: [W - 2.6, D - 2.6, 0.72, 1.6, 0.9, 0.05], k: "furn" });
+    boxes.push({ id: "dining-leg", b: [W - 1.88, D - 2.23, 0, 0.16, 0.16, 0.72], k: "furn" });
+    [[W - 2.4, D - 3.05], [W - 1.6, D - 3.05], [W - 2.4, D - 1.65], [W - 1.6, D - 1.65]].forEach(([x, y], i) =>
+      boxes.push({ id: `chair-${i}`, b: [x, y, 0, 0.4, 0.4, 0.46], k: "furn" }));
+  }
+
+  // Gyproc: nieuwe scheidingswand met naden
+  if (type === 4) {
+    const gx = Math.min(W - 1.2, 4.0);
+    boxes.push({ id: "gyproc", b: [gx, 0, 0, 0.1, Math.min(D * 0.55, 4.2), ROOM_WALL], k: "gyproc",
+      overlays: [{ face: "side", u0: 0, u1: Math.min(D * 0.55, 4.2), v0: 0, v1: ROOM_WALL, stepU: 1.2, cls: "iso-seams" }], tags: T });
+  }
+  // Schrijnwerk: kastenwand op maat
+  if (type === 6) {
+    const cw = Math.min(3.6, W - 1.3);
+    boxes.push({ ...cab("built", [W - cw - 0.3, 0, 0, cw, 0.45, 2.4], Math.max(2, Math.round(cw / 0.6))), k: "wood", tags: T });
+  }
+
+  // Afwerking: hoogwaardig = staande lamp; maatwerk = ook plinten
+  if (finish >= 2) {
+    boxes.push({ id: "lamp-foot", b: [0.45, 0.45, 0, 0.06, 0.06, 1.5], k: "cord", tags: ["interiorFinish"] });
+    boxes.push({ id: "lamp-shade", b: [0.3, 0.3, 1.45, 0.36, 0.36, 0.3], k: "lamp", tags: ["interiorFinish"] });
+  }
+  if (finish === 3) {
+    boxes.push({ id: "skirt-back", b: [0, 0, 0, W, 0.03, 0.1], k: "skirting", tags: ["interiorFinish"] });
+    boxes.push({ id: "skirt-left", b: [0, 0.03, 0, 0.03, D - 0.03, 0.1], k: "skirting", tags: ["interiorFinish"] });
+  }
+
+  // Voorbereiding: beperkt = ladder en verfpot; afbraak = puincontainer
+  if (prep === 2) {
+    boxes.push({ id: "ladder", b: [W - 0.8, 2.6, 0, 0.5, 0.12, 1.7], k: "ladder", rails: true, tags: ["interiorPrep"] });
+    boxes.push({ id: "bucket", b: [W - 0.55, 3.0, 0, 0.3, 0.3, 0.32], k: "bucket", tags: ["interiorPrep"] });
+  }
+  if (prep === 3) {
+    // Kleine ruimte: rechts vooraan; grotere ruimte: links vooraan (weg van de eettafel)
+    const sk = size === 1 ? [3.15, 3.0, 0, 1.3, 0.85, 0.7] : [0.4, D - 1.4, 0, 1.6, 1.0, 0.75];
+    const [sx, sy, , sw, sd, sh] = sk;
+    boxes.push({ id: "skip", b: sk, k: "skip", tags: ["interiorPrep"] });
+    [[0.15, 0.2], [0.5, 0.15], [0.75, 0.45]].forEach(([fx, fy], i) =>
+      boxes.push({ id: `rubble-${i}`, b: [sx + sw * fx, sy + sd * fy, sh, 0.28 + i * 0.04, 0.26, 0.14 + i * 0.04], k: "rubble", tags: ["interiorPrep"] }));
+  }
+  return boxes;
+}
+
+// ---------- Bühne: algemeen voor alle flows ----------
+const STAGES = {
+  kitchen: {
+    title: "Jouw keuken",
+    hello: "Je keuken verandert mee met elke keuze",
+    rooms: STAGE_ROOMS, wall: STAGE_WALL, sizeKey: "kitchenSize", defaultSize: 2,
+    build: kitchenConfig,
+    caption: ["kitchenSize", "kitchenStyle", "kitchenFinish", "kitchenWorktop"],
+    messages: STAGE_MESSAGES,
+    classes: (a) => [
+      a.kitchenStyle === undefined ? "style-draft" : Number(a.kitchenStyle) === 2 ? "style-land" : "style-modern",
+      `top-${Number(a.kitchenWorktop || 0)}`,
+      `scope-${Number(a.kitchenScope || 0)}`,
+      Number(a.kitchenFinish) === 1 ? "finish-luxe" : "finish-comfort"
+    ]
+  },
+  bathroom: {
+    title: "Jouw badkamer",
+    hello: "Je badkamer verandert mee met elke keuze",
+    rooms: BATH_ROOMS, wall: BATH_WALL, sizeKey: "bathroomSize", defaultSize: 2,
+    build: bathroomConfig,
+    caption: ["bathroomSize", "bathroomStyle", "bathroomComfort", "bathroomBathType"],
+    messages: {
+      bathroomSize: { 1: "Compacte badkamer, kleiner dan 6 m²", 2: "Badkamer van 7 tot 12 m²", 3: "Ruime badkamer van 13 tot 20 m²", 4: "Grote badkamer met vrijstaand bad" },
+      bathroomStyle: { 1: "Modern: wit meubel en grote tegels", 2: "Klassiek: houten meubel en kleine groene tegels" },
+      bathroomComfort: { 0: "Comfort: kwalitatief en degelijk", 1: "Luxe: verlichte spiegel, handdoekradiator en plant" },
+      bathroomTiling: { 1: "Tegels tot aan het plafond", 2: "Tegels tot 1,2 m en hoger in de douche" },
+      bathroomCeiling: { 1: "Verlaagd plafond met spots", 0: "Bestaand plafond blijft" },
+      bathroomBathType: { 1: "Inloopdouche", 2: "Ligbad", 3: "Douche én bad" },
+      bathroomVanity: { 1: "Enkel lavabomeubel", 2: "Dubbel lavabomeubel" },
+      bathroomToilet: { 1: "Hangtoilet in de badkamer", 0: "Geen toilet in de badkamer" }
+    },
+    classes: (a) => [
+      a.bathroomStyle === undefined ? "bstyle-draft" : Number(a.bathroomStyle) === 2 ? "bstyle-classic" : "bstyle-modern",
+      Number(a.bathroomComfort) === 1 ? "bfinish-luxe" : "bfinish-comfort"
+    ]
+  },
+  interior: {
+    title: "Jouw ruimte",
+    hello: "Je ruimte verandert mee met elke keuze",
+    rooms: ROOM_ROOMS, wall: ROOM_WALL, sizeKey: "interiorSurface", defaultSize: 1,
+    build: interiorConfig,
+    caption: ["interiorType", "interiorSurface", "interiorFinish"],
+    messages: {
+      interiorType: { 1: "Nieuwe parketvloer", 2: "Wanden en plafonds in een nieuwe kleur", 3: "Nieuwe tegelvloer", 4: "Nieuwe gyprocwand", 5: "Nieuwe deur en raam", 6: "Kastenwand op maat" },
+      interiorSurface: { 1: "Ruimte kleiner dan 25 m²", 2: "Ruimte van 25 tot 60 m²", 3: "Ruimte van 61 tot 120 m²", 4: "Ruimte groter dan 120 m²" },
+      interiorFinish: { 1: "Standaard afwerking", 2: "Hoogwaardige afwerking", 3: "Maatwerk tot in de details, met plinten" },
+      interiorPrep: { 1: "Meteen plaatsen", 2: "Beperkte voorbereiding", 3: "Afbraak en volledige voorbereiding" }
+    },
+    classes: (a) => [`itype-${Number(a.interiorType || 0)}`, `ifin-${Number(a.interiorFinish || 1)}`]
+  }
+};
+
+const fmt = (p) => p.map((v) => v.toFixed(3)).join(",");
+const seg = (p, q, cls) => `<line class="${cls}" x1="${p[0].toFixed(3)}" y1="${p[1].toFixed(3)}" x2="${q[0].toFixed(3)}" y2="${q[1].toFixed(3)}"/>`;
+
+// Punt op een zichtbaar vlak van een blok: front (+y), side (+x) of top (+z)
+function facePoint([x, y, z, w, d, h], face, u, v) {
+  if (face === "front") return isoPoint(x + u, y + d, z + v);
+  if (face === "side") return isoPoint(x + w, y + u, z + v);
+  return isoPoint(x + u, y + v, z + h);
+}
+
+// Vlak op een muur of vloer (tegels, planken, raam, deur), met rasterlijnen
+function overlaySvg(box, o) {
+  const P = (u, v) => facePoint(box.b, o.face, u, v);
+  let out = `<polygon class="iso-overlay ${o.cls}" points="${[P(o.u0, o.v0), P(o.u1, o.v0), P(o.u1, o.v1), P(o.u0, o.v1)].map(fmt).join(" ")}"/>`;
+  const su = o.stepU || o.step;
+  const sv = o.stepV || o.step;
+  if (su) for (let u = Math.ceil((o.u0 + 1e-6) / su) * su; u < o.u1 - 1e-6; u += su) out += seg(P(u, o.v0), P(u, o.v1), `iso-joint ${o.cls}-joint`);
+  if (sv) {
+    const base = o.alignV ?? 0;
+    for (let v = base + Math.ceil((o.v0 - base + 1e-6) / sv) * sv; v < o.v1 - 1e-6; v += sv) out += seg(P(o.u0, v), P(o.u1, v), `iso-joint ${o.cls}-joint`);
+  }
+  return out;
+}
+
+// Deurlijnen, kaders (landelijk) en greeplijnen (modern) op een kastvlak
+function cabinetDetails(box) {
+  const [x, y, z, w, d, h] = box.b;
+  const n = box.fronts;
+  const along = box.face === "side" ? d : w;
+  const at = (u, v) => facePoint(box.b, box.face === "side" ? "side" : "front", u, v);
+  let out = "";
+  for (let i = 0; i < n; i += 1) {
+    const u0 = (along / n) * i;
+    const u1 = (along / n) * (i + 1);
+    if (i > 0) out += seg(at(u0, 0.03), at(u0, h - 0.03), "iso-line");
+    const m = Math.min(0.08, along / n / 5);
+    out += `<polygon class="iso-frame" points="${[at(u0 + m, 0.09), at(u1 - m, 0.09), at(u1 - m, h - 0.09), at(u0 + m, h - 0.09)].map(fmt).join(" ")}"/>`;
+    const gv = z >= 1.4 ? 0.08 : h - 0.08; // bovenkast: greep onderaan, onderkast: bovenaan
+    out += seg(at(u0 + (u1 - u0) * 0.3, gv), at(u0 + (u1 - u0) * 0.7, gv), "iso-grip");
+  }
+  return out;
+}
+
+// Horizontale stangen (handdoekradiator, ladder)
+function railsSvg(box) {
+  const [, , , , , h] = box.b;
+  let out = "";
+  for (let v = 0.15; v < h; v += 0.2) out += seg(facePoint(box.b, "front", 0.03, v), facePoint(box.b, "front", box.b[3] - 0.03, v), "iso-rail");
+  return out;
+}
+
+// Tegelvloer: 1 tegel = 1 m²
+function floorGrid([x, y, z, w, d, h]) {
+  let out = "";
+  for (let i = 1; i < w; i += 1) out += seg(isoPoint(x + i, y, z + h), isoPoint(x + i, y + d, z + h), "iso-grid");
+  for (let j = 1; j < d; j += 1) out += seg(isoPoint(x, y + j, z + h), isoPoint(x + w, y + j, z + h), "iso-grid");
+  return out;
+}
+
+let stagePrevIds = null;
+let stagePrevBoxes = null;
+let stagePrevRoute = null;
+
+function stageViewBox(cfg, size) {
+  const H = cfg.wall;
+  const corners = (W, D) => [isoPoint(0, D, 0), isoPoint(W, 0, 0), isoPoint(-0.12, -0.12, H), isoPoint(W, D, -0.1), isoPoint(0, D, -0.1)];
+  const bounds = (pts) => {
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  };
+  const big = bounds(corners(...STAGE_ROOMS[4]));
+  const aspect = (big.x1 - big.x0) / (big.y1 - big.y0);
+  const b = bounds(corners(...cfg.rooms[size]));
+  const pad = { 1: 1.3, 2: 1.18, 3: 1.1, 4: 1.05 }[size];
+  let vw = (b.x1 - b.x0) * pad;
+  let vh = (b.y1 - b.y0) * pad;
+  if (vw / vh < aspect) vw = vh * aspect;
+  else vh = vw / aspect;
+  const cx = (b.x0 + b.x1) / 2;
+  const cy = (b.y0 + b.y1) / 2;
+  return `${(cx - vw / 2).toFixed(3)} ${(cy - vh / 2).toFixed(3)} ${vw.toFixed(3)} ${vh.toFixed(3)}`;
+}
+
+// Ovale vorm (bv. toiletpot): elliptische cilinder, met optionele opening bovenaan
+function convexHull(points) {
+  const pts = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower = [];
+  const upper = [];
+  pts.forEach((p) => {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  });
+  [...pts].reverse().forEach((p) => {
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  });
+  return lower.slice(0, -1).concat(upper.slice(0, -1));
+}
+
+function ovalSvg({ cx, cy, rx, ry, z0, z1, hole, taper = 1 }, k) {
+  const ring = (rX, rY, z, dy = 0) => Array.from({ length: 40 }, (_, i) => {
+    const t = (i / 40) * Math.PI * 2;
+    return isoPoint(cx + rX * Math.cos(t), cy + dy + rY * Math.sin(t), z);
+  });
+  const poly = (pts, cls) => `<polygon class="${cls}" points="${pts.map(fmt).join(" ")}"/>`;
+  // taper < 1: onderaan smaller en naar de muur toe (zoals een hangtoilet)
+  const bottom = ring(rx * taper, ry * taper, z0, -ry * (1 - taper) * 0.6);
+  let out = poly(convexHull([...bottom, ...ring(rx, ry, z1)]), `iso-face iso-${k} iso-front`);
+  out += poly(ring(rx, ry, z1), `iso-face iso-${k} iso-top`);
+  if (hole) out += poly(ring(rx * hole[0], ry * hole[1], z1 + 0.001, hole[2] || 0), `iso-face iso-${k} iso-hole`);
+  return out;
+}
+
+function stageSvg(boxes, pop, change) {
+  let body = "";
+  isoSort(boxes).forEach((box) => {
+    const f = isoFaces(box.b);
+    const k = `iso-face iso-${box.k}`;
+    const poly = (pts, cls) => `<polygon class="${cls}" points="${pts.map((q) => fmt(isoPoint(...q))).join(" ")}"/>`;
+    const flash = box.vanish ? " vanish" : change && box.tags?.includes(change) ? " flash" : "";
+    if (box.cone) {
+      // Lichtkegel op de muur: smal bovenaan, breed onderaan
+      const [, , , w, , h] = box.b;
+      const P = (u, v) => facePoint(box.b, "front", u, v);
+      body += `<g class="iso-box${pop.has(box.id) ? " pop" : ""}${flash}"><polygon class="iso-face iso-beam" points="${[P(w / 2 - 0.05, h), P(w / 2 + 0.05, h), P(w, 0), P(0, 0)].map(fmt).join(" ")}"/></g>`;
+      return;
+    }
+    if (box.oval) {
+      body += `<g class="iso-box${pop.has(box.id) ? " pop" : ""}${flash}">${ovalSvg(box.oval, box.k)}</g>`;
+      return;
+    }
+    body += `<g class="iso-box${pop.has(box.id) ? " pop" : ""}${flash}">` +
+      poly(f.side, `${k} iso-side`) + poly(f.front, `${k} iso-front`) + poly(f.top, `${k} iso-top`) +
+      (box.grid ? floorGrid(box.b) : "") +
+      (box.overlays || []).map((o) => overlaySvg(box, o)).join("") +
+      (box.fronts ? cabinetDetails(box) : "") +
+      (box.rails ? railsSvg(box) : "") +
+      (box.flush ? [0.3, 0.7].map((u) => {
+        const [x, y, z, w, d, h] = box.b;
+        const c = isoPoint(x + w * u, y + d, z + h / 2);
+        return `<ellipse class="iso-flush" cx="${c[0].toFixed(3)}" cy="${c[1].toFixed(3)}" rx="${(w * 0.17 * ISO_C).toFixed(3)}" ry="${(h * 0.3).toFixed(3)}"/>`;
+      }).join("") : "") + "</g>";
+  });
+  return body;
+}
+
+function stageCaption(cfg, a) {
+  const label = (key) => {
+    if (a[key] === undefined) return null;
+    const q = questions[key];
+    const i = q.values.findIndex((v) => String(v) === String(a[key]));
+    return (q.display?.[i] || q.labels[i]).replace(/\//g, " / ");
+  };
+  return cfg.caption.map(label).filter(Boolean);
+}
+
+function stageToast(text) {
+  const toast = document.querySelector("[data-stage-toast]");
+  if (!toast || !text) return;
+  toast.textContent = text;
+  toast.classList.remove("show");
+  void toast.offsetWidth; // animatie opnieuw starten
+  toast.classList.add("show");
+}
+
+function renderStage(answers = state.answers, { preview = false } = {}) {
+  const stage = document.querySelector("[data-stage]");
+  if (!stage) return;
+  const route = activeRoute();
+  const cfg = STAGES[route];
+  const show = Boolean(cfg) && state.view !== "interest";
+  const calculator = document.querySelector(".calculator");
+  calculator.classList.toggle("has-stage", show);
+  calculator.dataset.view = state.view;
+  stage.hidden = !show;
+  if (!show) {
+    stagePrevIds = null;
+    return;
+  }
+  if (stagePrevRoute !== route) stagePrevIds = null;
+  stagePrevRoute = route;
+
+  const first = stagePrevIds === null;
+  const built = cfg.build(answers);
+  const ids = new Set(built.map((b) => b.id));
+  const pop = new Set(!preview && !first ? [...ids].filter((id) => !stagePrevIds.has(id)) : []);
+  // Wat net verdween (bv. "Nee" bij toilet): nog even tonen terwijl het rood oplicht en vervaagt.
+  // Alleen bij een antwoord binnen dezelfde ruimte; bij een andere grootte zou alles "verdwijnen".
+  const sizeChanged = state.lastChange === cfg.sizeKey;
+  const vanished = !preview && !first && !sizeChanged && stagePrevBoxes
+    ? stagePrevBoxes.filter((b) => !ids.has(b.id)).map((b) => ({ ...b, vanish: true }))
+    : [];
+  const boxes = [...built, ...vanished];
+  if (!preview) {
+    stagePrevIds = ids;
+    stagePrevBoxes = built;
+  }
+
+  const change = !preview ? state.lastChange : null;
+  if (!preview) state.lastChange = null;
+
+  const classes = ["iso", "stage-svg", `stage-${route}`, ...cfg.classes(answers), change ? `chg-${change}` : "", preview ? "is-preview" : ""]
+    .filter(Boolean).join(" ");
+  const size = Number(answers[cfg.sizeKey] || cfg.defaultSize);
+
+  stage.querySelector("[data-stage-art]").innerHTML =
+    `<svg class="${classes}" xmlns="http://www.w3.org/2000/svg" viewBox="${stageViewBox(cfg, size)}" role="img" aria-label="Illustratie: ${cfg.title.toLowerCase()}">${stageSvg(boxes, pop, change)}</svg>`;
+  stage.querySelector("[data-stage-title]").textContent = cfg.title;
+  stage.querySelector("[data-stage-chips]").innerHTML = stageCaption(cfg, answers).map((c) => `<span class="stage-chip">${c}</span>`).join("");
+
+  if (first && !preview && !["lead", "result"].includes(state.view)) stageToast(cfg.hello);
+  else if (change) stageToast(cfg.messages[change]?.[answers[change]]);
+}
+
+// Voorproef bij hover (alleen op toestellen met muis)
+const canHover = window.matchMedia("(hover: hover)");
+document.addEventListener("mouseover", (event) => {
+  if (!canHover.matches) return;
+  const option = event.target.closest(".has-stage .radio-option[data-answer]");
+  if (!option || option.contains(event.relatedTarget)) return;
+  const key = option.dataset.answer;
+  const raw = option.dataset.value;
+  renderStage({ ...state.answers, [key]: Number.isNaN(Number(raw)) ? raw : Number(raw) }, { preview: true });
+});
+document.addEventListener("mouseout", (event) => {
+  if (!canHover.matches) return;
+  const option = event.target.closest(".has-stage .radio-option[data-answer]");
+  if (!option || option.contains(event.relatedTarget)) return;
+  renderStage(state.answers, { preview: true });
 });
 
 renderQuestions();
