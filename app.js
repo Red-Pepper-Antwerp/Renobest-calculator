@@ -1045,6 +1045,9 @@ els.form?.addEventListener("submit", async (event) => {
     if (window.dataLayer) {
       window.dataLayer.push({ event: "renobest_calculator_lead", interesse: state.answers.interest });
     }
+    if (typeof window.renobestTrackLead === "function") {
+      window.renobestTrackLead({ interesse: answerLabel("interest") });
+    }
     goToView("result");
   } catch (error) {
     els.formError.textContent = "Je aanvraag kon niet verzonden worden. Probeer het opnieuw of bel 011 12 04 00.";
