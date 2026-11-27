@@ -1005,6 +1005,29 @@ function answersSummary() {
     .join(" | ");
 }
 
+function questionTitle(key) {
+  const group = document.querySelector(`[data-question="${key}"]`);
+  const heading = group?.parentElement?.querySelector("h3") || group?.closest("section, fieldset, .step")?.querySelector("h3");
+  return heading ? heading.textContent.trim().replace(/\?$/, "") : key;
+}
+
+function noteBody() {
+  const lines = [`Prijscalculator | Project: ${answerLabel("interest")}`];
+  lines.push(`Richtprijs: ${euro.format(calculatePrice())} (indicatie, geen offerte)`);
+  const street = els.form.elements.namedItem("street")?.value || "";
+  const postal = els.form.elements.namedItem("postal")?.value || "";
+  if (street || postal) lines.push(`Adres: ${[street, postal].filter(Boolean).join(", ")}`);
+  lines.push("", "Antwoorden:");
+  (routeQuestionKeys[activeRoute()] || [])
+    .filter((key) => state.answers[key] !== undefined)
+    .forEach((key) => lines.push(`- ${questionTitle(key)}: ${answerLabel(key)}`));
+  const campaign = trackingKeys
+    .filter((key) => key.startsWith("utm_") && trackingParams[key])
+    .map((key) => `${key}=${trackingParams[key]}`);
+  if (campaign.length) lines.push("", `Campagne: ${campaign.join(" | ")}`);
+  return lines.join("\n");
+}
+
 function setHidden(name, value) {
   const field = els.form.elements.namedItem(name);
   if (field) field.value = value ?? "";
@@ -1028,6 +1051,7 @@ els.form?.addEventListener("submit", async (event) => {
   setHidden("richtprijs", euro.format(calculatePrice()));
   trackingKeys.forEach((key) => setHidden(key, trackingParams[key]));
   setHidden("pagina", window.location.href);
+  setHidden("body", noteBody());
 
   const submitButton = els.form.querySelector('button[type="submit"]');
   sending = true;
